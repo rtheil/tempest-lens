@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.log
+.env
+.DS_Store
+
+# Local secrets — WeatherFlow token + station id. NEVER commit.
+tempest-lens.config.json

@@ -1,0 +1,38 @@
+{
+  "name": "tempest-lens",
+  "version": "0.1.0",
+  "description": "An unofficial, self-hosted dashboard for the WeatherFlow Tempest weather station. Great as a Raspberry Pi kiosk.",
+  "type": "module",
+  "bin": {
+    "tempest-lens": "dist/index.js"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "weatherflow",
+    "tempest",
+    "weather",
+    "dashboard",
+    "raspberry-pi",
+    "kiosk"
+  ],
+  "author": "Ricky Theil",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "astronomy-engine": "^2.1.19",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
