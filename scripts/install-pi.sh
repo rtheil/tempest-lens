@@ -34,7 +34,7 @@ USER_NAME="$(id -un)"
 # --------------------------------------------------------------------------- #
 say "Installing prerequisites (git, unclutter)…"
 sudo apt-get update -y
-sudo apt-get install -y git unclutter curl ca-certificates
+sudo apt-get install -y git unclutter curl ca-certificates xz-utils
 
 # --------------------------------------------------------------------------- #
 NODE_OK=0
@@ -44,9 +44,26 @@ fi
 if [ "$NODE_OK" = "1" ]; then
   say "Node $(node -v) already present — good."
 else
-  say "Installing Node.js ${NODE_MAJOR}.x (NodeSource)…"
-  curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | sudo -E bash -
-  sudo apt-get install -y nodejs
+  ARCH="$(uname -m)"
+  if [ "$ARCH" = "armv7l" ] || [ "$ARCH" = "armv6l" ]; then
+    # NodeSource dropped 32-bit ARM (armhf) at v20 — use the official nodejs.org
+    # tarball instead. (64-bit Pi OS reports aarch64 and uses NodeSource below.)
+    FILE="$(curl -fsSL "https://nodejs.org/dist/latest-v${NODE_MAJOR}.x/SHASUMS256.txt" | grep -o "node-v[0-9.]*-linux-${ARCH}.tar.xz" | head -1)"
+    [ -n "$FILE" ] || { echo "No Node v${NODE_MAJOR} build for ${ARCH}." >&2; exit 1; }
+    say "Installing ${FILE%-linux*} (official ${ARCH} build)…"
+    curl -fsSL "https://nodejs.org/dist/latest-v${NODE_MAJOR}.x/${FILE}" -o /tmp/node.tar.xz
+    sudo mkdir -p /usr/local/lib/nodejs
+    sudo tar -xJf /tmp/node.tar.xz -C /usr/local/lib/nodejs
+    NODE_ROOT="/usr/local/lib/nodejs/${FILE%.tar.xz}"
+    sudo ln -sf "$NODE_ROOT/bin/node" /usr/local/bin/node
+    sudo ln -sf "$NODE_ROOT/bin/npm" /usr/local/bin/npm
+    sudo ln -sf "$NODE_ROOT/bin/npx" /usr/local/bin/npx
+    rm -f /tmp/node.tar.xz
+  else
+    say "Installing Node.js ${NODE_MAJOR}.x (NodeSource)…"
+    curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | sudo -E bash -
+    sudo apt-get install -y nodejs
+  fi
 fi
 NODE_BIN="$(command -v node)"
 
