@@ -6,10 +6,6 @@
 
 'use strict';
 
-// TEMPORARY build stamp — must match WEB_UI_BUILD in server/bridge.py.
-// Lets us confirm the browser loaded fresh JS (not a cached copy).
-const BUILD = '113';
-
 // ---- tiny DOM + data helpers ------------------------------------------- //
 const $ = (id) => document.getElementById(id);
 // Only touch the DOM when the value actually changes — avoids needless repaints
@@ -305,22 +301,6 @@ function render(s) {
   // Both temperature panes are the same component; render both (hidden one is cheap).
   if (dashTempPane) dashTempPane.render(s);
   if (layoutTempPane) layoutTempPane.render(s);
-
-  // TEMPORARY: surface the UI build vs the server build so a stale cached
-  // app.js is obvious (red tag + console warning).
-  const tag = $('buildTag');
-  if (tag) {
-    const srv = s.build || '?';
-    tag.textContent = `ui ${BUILD} · srv ${srv}`;
-    tag.classList.toggle('mismatch', !!s.build && s.build !== BUILD);
-  }
-  // Auto-reload the kiosk once when a NEW server build appears. Keyed on the
-  // server build value (not a timer) so it reloads at most once per distinct
-  // build — never loops, even if this app.js is newer than the server reports.
-  if (s.build && s.build !== BUILD && sessionStorage.getItem('wfReloadedFor') !== s.build) {
-    sessionStorage.setItem('wfReloadedFor', s.build);
-    location.reload();
-  }
 
   // Header
   if (meta.name) set('station', meta.name);
@@ -772,9 +752,6 @@ function tick() {
 
 // ---- boot -------------------------------------------------------------- //
 (function init() {
-  console.log(`%c[wfpiconsole-web] build ${BUILD}`, 'color:#5ad1e6;font-weight:bold');
-  if ($('buildTag')) $('buildTag').textContent = `ui ${BUILD} · srv …`;
-
   // Compass tick marks
   const g = $('ticks');
   if (g) {
