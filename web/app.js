@@ -216,6 +216,10 @@ function renderForecast(el, list, max) {
       + '<div class="fc-precip">' + precip + '</div>'
       + '</div>';
   }).join('');
+  // Match the column count to the days actually shown so the strip always fills
+  // the width and stays centered (dropping "today" can leave fewer than `max`).
+  const cols = days.length ? `repeat(${days.length}, 1fr)` : '';
+  if (el.style.gridTemplateColumns !== cols) el.style.gridTemplateColumns = cols;
   if (el.innerHTML !== html) el.innerHTML = html;
 }
 
