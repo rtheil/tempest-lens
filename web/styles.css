@@ -332,6 +332,17 @@ body {
 }
 .popover-body a { color: var(--cyan); text-decoration: none; font-weight: 600; }
 .popover-body a:hover { text-decoration: underline; }
+.update-run {
+  display: block; width: 100%; margin: 12px 0 4px;
+  font: inherit; font-weight: 700; font-size: .95em;
+  color: var(--ground); background: var(--amber);
+  border: none; border-radius: 8px; padding: 9px 12px; cursor: pointer;
+}
+.update-run:hover { background: color-mix(in srgb, var(--amber) 88%, #fff); }
+.update-run:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.update-run:disabled { opacity: .6; cursor: default; }
+.update-status { margin: 8px 0 4px; line-height: 1.45; color: var(--muted); }
+.update-status.err { color: var(--crit); }
 
 /* ---------- grid ---------- */
 .grid {

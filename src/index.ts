@@ -8,6 +8,7 @@
  */
 
 import os from 'node:os';
+import { exec } from 'node:child_process';
 import QRCode from 'qrcode';
 import { loadConfig, saveSettings, saveCredentials } from './config.js';
 import { State, VERSION, REPO, REPO_URL } from './state.js';
@@ -170,6 +171,50 @@ async function applyCredentials(token: string, stationId: number): Promise<void>
 }
 
 // --------------------------------------------------------------------------- //
+// Self-update: pull the release, rebuild, then exit so systemd relaunches on    //
+// the new code (the unit is Restart=always). No privilege needed — we never     //
+// call systemctl; we just replace dist/ and let the service restart itself.     //
+// --------------------------------------------------------------------------- //
+function sh(cmd: string): Promise<{ code: number; out: string }> {
+  return new Promise((resolve) => {
+    // Prepend /usr/local/bin so the systemd service (minimal PATH) finds the
+    // node/npm symlinks the Pi installer created.
+    const env = { ...process.env, PATH: `/usr/local/bin:/usr/bin:/bin:${process.env.PATH ?? ''}` };
+    exec(cmd, { cwd: process.cwd(), env, maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
+      resolve({ code: err ? (err as any).code ?? 1 : 0, out: `${stdout}${stderr}` });
+    });
+  });
+}
+
+let updating = false;
+async function runUpdate(): Promise<{ ok: boolean; error?: string; log?: string }> {
+  if (!state.update.available) return { ok: false, error: 'already up to date' };
+  if (updating) return { ok: false, error: 'update already in progress' };
+  updating = true;
+  const steps = [
+    'git fetch --depth 1 origin',
+    'git reset --hard @{u}',
+    'npm install --no-audit --no-fund',
+    'npm run build',
+  ];
+  let log = '';
+  for (const cmd of steps) {
+    console.log(`[tempest-lens] update: ${cmd}`);
+    const { code, out } = await sh(cmd);
+    log += `$ ${cmd}\n${out}\n`;
+    if (code !== 0) {
+      updating = false;
+      console.error(`[tempest-lens] update step failed (${code}): ${cmd}`);
+      return { ok: false, error: `\`${cmd}\` failed`, log };
+    }
+  }
+  console.log('[tempest-lens] update complete — restarting to load the new build.');
+  // Let the HTTP response flush before we exit; systemd (Restart=always) relaunches.
+  setTimeout(() => process.exit(0), 1000);
+  return { ok: true, log };
+}
+
+// --------------------------------------------------------------------------- //
 // Server + settings/setup hooks                                               //
 // --------------------------------------------------------------------------- //
 const hooks: ServerHooks = {
@@ -209,6 +254,7 @@ const hooks: ServerHooks = {
     }
     return { ok: true, stations }; // caller must pick, then POST with stationId
   },
+  update: runUpdate,
 };
 
 startServer(state, HTTP_PORT, '0.0.0.0', hooks);

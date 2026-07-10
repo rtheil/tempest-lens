@@ -416,6 +416,41 @@ function render(s) {
   }
 }
 
+// Kick off a self-update: POST /api/update, then wait for the service to drop
+// (it rebuilds and exits) and come back up, and reload onto the new build.
+async function runUpdate() {
+  const btn = $('updateRun'), st = $('updateStatus');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  st.hidden = false; st.className = 'update-status';
+  st.textContent = 'Updating… this can take a minute.';
+  let res;
+  try {
+    res = await (await fetch('/api/update', { method: 'POST' })).json();
+  } catch (err) {
+    // Connection dropped mid-response — the server is restarting (success path).
+    res = { ok: true };
+  }
+  if (!res.ok) {
+    st.textContent = 'Update failed: ' + (res.error || 'unknown error') + '. Try again or update from the console.';
+    st.classList.add('err');
+    btn.disabled = false;
+    return;
+  }
+  st.textContent = 'Installing & restarting…';
+  // Poll health: wait until the service goes down and comes back, then reload.
+  const started = Date.now();
+  let sawDown = false;
+  const iv = setInterval(async () => {
+    if (Date.now() - started > 150000) { clearInterval(iv); location.reload(); return; }
+    try {
+      const r = await fetch('/api/health', { cache: 'no-store' });
+      if (r.ok) { if (sawDown) { clearInterval(iv); location.reload(); } }
+      else sawDown = true;
+    } catch (err) { sawDown = true; }
+  }, 2500);
+}
+
 // ---- connection -------------------------------------------------------- //
 let lastUpdate = 0, connected = false;
 
@@ -794,6 +829,8 @@ function tick() {
   }
   if (badge) badge.addEventListener('click', () => showPopover(pop.hidden));
   if (closeBtn) closeBtn.addEventListener('click', () => showPopover(false));
+  const runBtn = $('updateRun');
+  if (runBtn) runBtn.addEventListener('click', runUpdate);
 
   // Settings drawer
   // Mount the shared temperature pane in both hosts (dashboard tile + full layout).

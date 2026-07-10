@@ -37,6 +37,10 @@ export interface ServerHooks {
   getConfig(): unknown;
   setConfig(section: string, key: string, value: string): void;
   setup(token: string, stationId?: number): Promise<{ ok: boolean; stations?: { id: number; name: string }[] }>;
+  /** Pull the latest release, rebuild, and restart the service. Resolves after
+   *  the build; on success the process exits shortly after so systemd relaunches
+   *  it on the new code. */
+  update(): Promise<{ ok: boolean; error?: string; log?: string }>;
 }
 
 export function startServer(state: State, port: number, host = '0.0.0.0', hooks?: ServerHooks) {
@@ -74,6 +78,15 @@ export function startServer(state: State, port: number, host = '0.0.0.0', hooks?
       }
       res.statusCode = 400;
       return json(res, { ok: false, error: 'token required' });
+    }
+    if (p === '/api/update' && req.method === 'POST') {
+      if (!hooks?.update) {
+        res.statusCode = 501;
+        return json(res, { ok: false, error: 'not supported' });
+      }
+      const result = await hooks.update();
+      if (!result.ok) res.statusCode = result.error === 'already up to date' ? 409 : 500;
+      return json(res, result);
     }
     if (p === '/api/system') {
       res.statusCode = 501;
