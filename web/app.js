@@ -69,6 +69,10 @@ function applyFeelsColor(el, obs) {
 // Shared "Outdoor Temperature" pane. Mounted twice — in the dashboard tile
 // (5-day) and the full-screen Temperature layout (10-day, sized up via
 // .tp-large). One definition, so the two can never drift apart.
+// Raindrop glyph, shared by the forecast strip and the TODAY card.
+const FC_DROP = '<svg class="fc-drop" viewBox="0 0 24 24" aria-hidden="true">'
+  + '<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z" fill="currentColor"/></svg>';
+
 const TEMP_PANE_HTML =
   '<div class="hero-top"><div>'
   + '<div class="tile-head"><span class="tile-accent" style="background:var(--amber)"></span><span class="tile-label">Outdoor Temperature</span></div>'
@@ -78,17 +82,30 @@ const TEMP_PANE_HTML =
   + '<div class="temp-diff tp-diff">&mdash;</div>'
   + '<span class="feels tp-feels">Feels like <b class="tp-feelsval">--</b></span>'
   + '</div>'
-  + '<div class="hilo">'
-  + '<div class="hilo-col"><div class="k">Today\'s High</div><div class="hilo-val hi tp-high">--</div><div class="hilo-meta tp-hightime">--</div></div>'
-  + '<div class="hilo-col"><div class="k">Today\'s Low</div><div class="hilo-val lo tp-low">--</div><div class="hilo-meta tp-lowtime">--</div></div>'
+  // TODAY forecast card (top-right): reads clearly as forecast, not observed.
+  + '<div class="today-fc">'
+  + '<div class="tfc-dow">Today</div>'
+  + '<div class="tfc-body">'
+  + '<div class="tfc-icon tp-todayicon"></div>'
+  + '<div class="tfc-temps"><span class="fc-hi tp-todayhi">--</span><span class="fc-lo tp-todaylo">--</span></div>'
+  + '</div>'
+  + '<div class="tfc-precip tp-todayprecip">--</div>'
   + '</div>'
   + '</div></div></div>'
   + '<div class="forecast5 tp-forecast"></div>'
-  + '<div class="hero-bottom"><div class="substats">'
+  + '<div class="hero-bottom">'
+  + '<div class="substats">'
   + '<div class="stat"><div class="k">Dew Point</div><div class="v tp-dew">--</div></div>'
   + '<div class="stat"><div class="k">Humidity</div><div class="v tp-hum">--</div></div>'
   + '<div class="stat"><div class="k">3-hr Trend</div><div class="v tp-trend">--</div></div>'
-  + '</div></div>';
+  + '</div>'
+  // Observed high/low (with time) moved to the bottom-right, alongside the other
+  // observed stats; laid out horizontally to match the substats row.
+  + '<div class="hilo hilo-bottom">'
+  + '<div class="hilo-col"><div class="k">High <span class="hilo-when tp-hightime"></span></div><div class="hilo-val hi tp-high">--</div></div>'
+  + '<div class="hilo-col"><div class="k">Low <span class="hilo-when tp-lowtime"></span></div><div class="hilo-val lo tp-low">--</div></div>'
+  + '</div>'
+  + '</div>';
 
 function temperaturePane(root, opts) {
   const forecastDays = (opts && opts.forecastDays) || 5;
@@ -98,6 +115,7 @@ function temperaturePane(root, opts) {
     temp: q('.tp-temp'), diff: q('.tp-diff'), feels: q('.tp-feels'), feelsval: q('.tp-feelsval'),
     high: q('.tp-high'), hightime: q('.tp-hightime'), low: q('.tp-low'), lowtime: q('.tp-lowtime'),
     dew: q('.tp-dew'), hum: q('.tp-hum'), trend: q('.tp-trend'), forecast: q('.tp-forecast'),
+    todayicon: q('.tp-todayicon'), todayhi: q('.tp-todayhi'), todaylo: q('.tp-todaylo'), todayprecip: q('.tp-todayprecip'),
   };
   return {
     render(s) {
@@ -107,12 +125,19 @@ function temperaturePane(root, opts) {
       setEl(els.feelsval, vu(obs.FeelsLike));
       applyFeelsColor(els.feels, obs);
       setEl(els.high, vu(obs.outTempMax));
-      setEl(els.hightime, part(obs.outTempMax, 2, '--'));
+      const hiAt = part(obs.outTempMax, 2, '');
+      setEl(els.hightime, hiAt ? 'at ' + hiAt : '');
       setEl(els.low, vu(obs.outTempMin));
-      setEl(els.lowtime, part(obs.outTempMin, 2, '--'));
+      const loAt = part(obs.outTempMin, 2, '');
+      setEl(els.lowtime, loAt ? 'at ' + loAt : '');
       setEl(els.dew, vu(obs.DewPoint));
       setEl(els.hum, vu(obs.Humidity));
       setEl(els.trend, vu(obs.outTempTrend));
+      const fc0 = (Array.isArray(s.forecast) && s.forecast[0]) || {};
+      if (els.todayicon) els.todayicon.innerHTML = weatherIconSVG(fc0.icon || fc0.conditions || '');
+      setEl(els.todayhi, vu(fc0.high));
+      setEl(els.todaylo, vu(fc0.low));
+      if (els.todayprecip) els.todayprecip.innerHTML = FC_DROP + vu(fc0.precip, '0%');
       renderForecast(els.forecast, s.forecast, forecastDays);
     },
   };
@@ -181,13 +206,12 @@ function setWeatherIcon(token) {
 // element `el`, capped at `max` days (5 on the dashboard, 10 on the temp layout).
 function renderForecast(el, list, max) {
   if (!el) return;
-  const days = (Array.isArray(list) ? list : []).slice(0, max);
-  const drop = '<svg class="fc-drop" viewBox="0 0 24 24" aria-hidden="true">'
-    + '<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z" fill="currentColor"/></svg>';
+  // Skip index 0 (today — shown in the TODAY card); show the next `max` days.
+  const days = (Array.isArray(list) ? list : []).slice(1, max + 1);
   const html = days.map(function (d) {
     const dow  = stripMarkup(d.day || '');
     const icon = weatherIconSVG(d.icon || d.conditions || '');
-    const precip = drop + vu(d.precip, '0%');
+    const precip = FC_DROP + vu(d.precip, '0%');
     return '<div class="fc-day">'
       + '<div class="fc-dow">' + dow + '</div>'
       + '<div class="fc-icon">' + icon + '</div>'

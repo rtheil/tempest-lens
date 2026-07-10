@@ -365,6 +365,14 @@ body {
 .tp-large .hilo-col .k { font-size: clamp(11px, 1.1vw, 14px); }
 .tp-large .hilo-val { font-size: clamp(40px, 5.5vw, 84px); }
 .tp-large .hilo-meta { font-size: clamp(12px, 1.2vw, 16px); }
+.tp-large .hilo-bottom { gap: clamp(28px, 6vw, 90px); }
+.tp-large .hilo-bottom .hilo-val { font-size: clamp(22px, 2.8vw, 40px); }
+.tp-large .tfc-dow { font-size: clamp(11px, 1.1vw, 14px); }
+.tp-large .tfc-icon .wicon { width: clamp(64px, 8vw, 120px); }
+.tp-large .tfc-body { gap: clamp(14px, 2vw, 30px); }
+.tp-large .tfc-precip { font-size: clamp(22px, 2.6vw, 40px); }
+.tp-large .today-fc .fc-hi { font-size: clamp(40px, 5.2vw, 78px); }
+.tp-large .today-fc .fc-lo { font-size: clamp(34px, 4.2vw, 62px); }
 .tp-large .substats { gap: clamp(28px, 7vw, 90px); }
 .tp-large .stat .k { font-size: clamp(11px, 1.1vw, 13px); }
 .tp-large .stat .v { font-size: clamp(22px, 2.8vw, 40px); }
@@ -471,20 +479,39 @@ svg { width: 100%; height: 100%; display: block; }
 .temp-diff { font-size: clamp(12px, 1.45vw, 18px); color: var(--muted); margin-top: 8px; font-weight: 500; min-height: 1.2em; }
 .temp-diff b { font-weight: 700; }
 
-/* top cluster: current temp + 24h diff on the left, high/low stacked on the right */
+/* top cluster: current temp + 24h diff on the left, TODAY forecast on the right */
 .temp-row { display: flex; justify-content: space-between; align-items: flex-start; gap: clamp(16px, 4vw, 48px); margin-top: 12px; }
 .temp-left { min-width: 0; }
 
-/* actual (observed) high/low with time, stacked high-over-low, right-aligned */
+/* TODAY forecast card (top-right): label, big icon + hi/lo beside it, precip below */
+.today-fc { display: flex; flex-direction: column; align-items: flex-end; gap: clamp(4px, .9vh, 9px); text-align: right; }
+.tfc-dow { font-size: clamp(9px, 1vw, 12px); font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--faint); }
+.tfc-body { display: flex; align-items: center; gap: clamp(8px, 1.4vw, 18px); }
+.tfc-icon .wicon { width: clamp(42px, 5vw, 72px); height: auto; display: block; }
+.tfc-temps { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.1; }
+/* precip is a headline fact for "what will today be" — keep it prominent */
+.tfc-precip { display: flex; align-items: center; gap: 5px; min-height: 1.1em; font-size: clamp(16px, 1.9vw, 26px); font-weight: 600; color: var(--text); opacity: .85; }
+/* TODAY hi/lo: prominent, like the current-temp readout used to be */
+.today-fc .fc-hi { font-size: 52px; }
+.today-fc .fc-lo { font-size: 46px; }
+
+/* actual (observed) high/low with time */
 .hilo { display: flex; flex-direction: column; gap: clamp(10px, 1.6vh, 18px); text-align: right; }
 .hilo-col { min-width: 0; }
 .hilo-col .k { font-size: clamp(9px, .95vw, 11px); color: var(--faint); text-transform: uppercase; letter-spacing: .8px; }
 .hilo-val { font-size: clamp(24px, 3.2vw, 44px); font-weight: 300; line-height: 1.05; margin-top: 2px; }
 .hilo-meta { font-size: clamp(9px, 1vw, 12px); color: var(--muted); margin-top: 3px; }
 
+/* bottom-right observed high/low: two-liner (label+time over value) matching the
+   substats; value sized like the stat values, kept red/blue */
+.hilo-bottom { flex-direction: row; text-align: left; gap: clamp(20px, 4vw, 56px); align-items: flex-start; }
+.hilo-bottom .hilo-val { font-size: clamp(15px, 2vw, 26px); font-weight: 500; margin-top: 2px; line-height: 1.2; }
+.hilo-when { text-transform: none; letter-spacing: 0; }
+
 /* hero: a tight top cluster and a bottom cluster, one breathing gap between */
 .hero-top { display: flex; flex-direction: column; gap: clamp(8px, 1.6vh, 18px); min-width: 0; }
-.hero-bottom { display: flex; flex-direction: column; gap: clamp(10px, 1.8vh, 20px); min-width: 0; }
+.hero-bottom { display: flex; align-items: flex-start; justify-content: space-between; gap: clamp(16px, 4vw, 48px); min-width: 0; }
+.hero-bottom .substats { flex: 1; }
 
 /* forecast narrative inside the hero pane */
 .hero-forecast { min-width: 0; }
