@@ -7,7 +7,7 @@
 import type { Units } from './units.js';
 
 export interface DisplayPrefs {
-  Theme: string; // 'dark' | 'light' | 'auto'
+  Mode: string; // 'dark' | 'light' | 'auto' — light/dark appearance within a theme
   Layout: string; // 'dashboard' | 'temp'
   TimeFormat: string; // '12 hr' | '24 hr'
   DateFormat: string;
@@ -15,7 +15,7 @@ export interface DisplayPrefs {
 }
 
 export const DEFAULT_DISPLAY: DisplayPrefs = {
-  Theme: 'dark',
+  Mode: 'dark',
   Layout: 'dashboard',
   TimeFormat: '12 hr',
   DateFormat: 'Mon, Jan 01 0000',
@@ -54,7 +54,7 @@ export function buildSchema(u: Units, d: DisplayPrefs, about: About): ConfigSche
         name: 'Appearance',
         title: 'Appearance',
         fields: [
-          { section: 'Display', key: 'Theme', title: 'Theme', value: d.Theme, options: ['dark', 'light', 'auto'], labels: { dark: 'Dark', light: 'Light', auto: 'Auto' } },
+          { section: 'Display', key: 'Mode', title: 'Mode', value: d.Mode, options: ['dark', 'light', 'auto'], labels: { dark: 'Dark', light: 'Light', auto: 'Auto' } },
           { section: 'Display', key: 'Layout', title: 'Layout', value: d.Layout, options: ['dashboard', 'temp'], labels: { dashboard: 'Dashboard', temp: 'Temperature' } },
         ],
       },

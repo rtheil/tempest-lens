@@ -28,7 +28,12 @@ export function loadConfig(): Config {
     ? Number(process.env.WEATHERFLOW_STATION_ID)
     : file.stationId ?? null;
   const units: Units = { ...DEFAULT_UNITS, ...(file.units ?? {}) };
-  const display: DisplayPrefs = { ...DEFAULT_DISPLAY, ...(file.display ?? {}) };
+  const rawDisplay: any = { ...(file.display ?? {}) };
+  // Migration: the light/dark setting was renamed Theme -> Mode. Carry an old
+  // config's value over so upgrades keep the user's choice.
+  if (rawDisplay.Theme != null && rawDisplay.Mode == null) rawDisplay.Mode = rawDisplay.Theme;
+  delete rawDisplay.Theme;
+  const display: DisplayPrefs = { ...DEFAULT_DISPLAY, ...rawDisplay };
   return { token, stationId, units, display };
 }
 

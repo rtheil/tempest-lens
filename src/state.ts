@@ -26,8 +26,8 @@ import {
 import { mapStationObs } from './station.js';
 import type { DisplayPrefs } from './settings.js';
 
-export const BUILD = '1.1.2';
-export const VERSION = '1.1.2';
+export const BUILD = '1.1.3';
+export const VERSION = '1.1.3';
 export const REPO = 'rtheil/tempest-lens';
 export const REPO_URL = 'https://github.com/rtheil/tempest-lens';
 

@@ -340,7 +340,7 @@ function render(s) {
   const obs = s.obs || {}, astro = s.astro || {}, met = s.met || {},
         sager = s.sager || {}, meta = s.meta || {}, upd = s.update || {};
   if (s.display) displayPrefs = s.display;
-  applyTheme(displayPrefs.Theme || 'dark');
+  applyTheme(displayPrefs.Mode || 'dark');
   if (typeof s.configured === 'boolean') {
     setupVisible(!s.configured);
     if (!s.configured) updateSetupRemote(s.access);
@@ -939,7 +939,7 @@ function tick() {
 
   // Re-apply theme when the OS light/dark preference changes (only matters in 'auto').
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-    if ((displayPrefs.Theme || 'dark') === 'auto') applyTheme('auto');
+    if ((displayPrefs.Mode || 'dark') === 'auto') applyTheme('auto');
   });
 
   // First-run setup
