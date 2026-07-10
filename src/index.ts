@@ -262,9 +262,9 @@ startServer(state, HTTP_PORT, '0.0.0.0', hooks);
 // --------------------------------------------------------------------------- //
 // Update check (no token needed; dormant until releases exist)                //
 // --------------------------------------------------------------------------- //
-const checkUpdate = async () => {
+const checkUpdate = async (): Promise<boolean> => {
   try {
-    const rel = await fetchLatestRelease(REPO);
+    const rel = await fetchLatestRelease(REPO); // null == 404 (no releases yet); still a success
     const latest = rel ? rel.tag.replace(/^v/, '') : '';
     state.setUpdate({
       available: !!latest && latest !== VERSION,
@@ -272,12 +272,29 @@ const checkUpdate = async () => {
       url: rel?.url ?? REPO_URL,
       notes: rel?.body ?? '',
     });
+    return true;
   } catch (err) {
     warn('update check', err);
+    return false;
   }
 };
-void checkUpdate();
-setInterval(checkUpdate, 6 * 60 * 60 * 1000);
+
+// At boot the network is often not ready yet (a bare `network-online.target`
+// isn't enough on the Pi), so the first check can fail and would otherwise
+// leave us blind for 6h. Retry with a short backoff until the first success,
+// then settle into the 6-hour interval.
+const RETRY_BACKOFF_S = [15, 30, 60, 120, 300];
+let updateRetry = 0;
+async function checkUpdateUntilFirstSuccess(): Promise<void> {
+  if (await checkUpdate()) {
+    setInterval(checkUpdate, 6 * 60 * 60 * 1000);
+    return;
+  }
+  const wait = RETRY_BACKOFF_S[Math.min(updateRetry++, RETRY_BACKOFF_S.length - 1)];
+  console.warn(`[tempest-lens] update check failed — retrying in ${wait}s`);
+  setTimeout(() => void checkUpdateUntilFirstSuccess(), wait * 1000);
+}
+void checkUpdateUntilFirstSuccess();
 
 // --------------------------------------------------------------------------- //
 // Boot                                                                        //
