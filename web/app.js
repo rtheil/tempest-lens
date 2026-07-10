@@ -420,10 +420,11 @@ function render(s) {
 // (it rebuilds and exits) and come back up, and reload onto the new build.
 async function runUpdate() {
   const btn = $('updateRun'), st = $('updateStatus');
-  if (!btn || btn.disabled) return;
-  btn.disabled = true;
+  if (!btn || btn.hidden) return;
+  // Hide the button while updating so its label can't sit under the status.
+  btn.hidden = true;
   st.hidden = false; st.className = 'update-status';
-  st.textContent = 'Updating… this can take a minute.';
+  st.innerHTML = '<span class="spinner"></span>Updating…';
   let res;
   try {
     res = await (await fetch('/api/update', { method: 'POST' })).json();
@@ -434,10 +435,10 @@ async function runUpdate() {
   if (!res.ok) {
     st.textContent = 'Update failed: ' + (res.error || 'unknown error') + '. Try again or update from the console.';
     st.classList.add('err');
-    btn.disabled = false;
+    btn.hidden = false;
     return;
   }
-  st.textContent = 'Installing & restarting…';
+  st.innerHTML = '<span class="spinner"></span>Installing &amp; restarting…';
   // Poll health: wait until the service goes down and comes back, then reload.
   const started = Date.now();
   let sawDown = false;

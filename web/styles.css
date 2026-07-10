@@ -341,8 +341,19 @@ body {
 .update-run:hover { background: color-mix(in srgb, var(--amber) 88%, #fff); }
 .update-run:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .update-run:disabled { opacity: .6; cursor: default; }
-.update-status { margin: 8px 0 4px; line-height: 1.45; color: var(--muted); }
-.update-status.err { color: var(--crit); }
+.update-status {
+  display: flex; align-items: center; gap: 8px;
+  margin: 12px 0 6px; line-height: 1.45;
+  color: var(--text); font-weight: 600; font-size: 1.05em;
+}
+.update-status.err { color: var(--crit); font-weight: 600; }
+.spinner {
+  flex: none; width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--amber) 35%, transparent);
+  border-top-color: var(--amber);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- grid ---------- */
 .grid {
