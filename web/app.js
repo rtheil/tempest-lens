@@ -1,8 +1,8 @@
-/* WeatherFlow PiConsole - web UI client.
-   Connects to the bridge (server/bridge.py) over a WebSocket, receives a full
-   state snapshot whenever the console's data changes, and renders it. Values
-   arrive as the console stores them: usually [value, unit, ...] lists, but
-   sometimes bare strings, so every read goes through the tolerant helpers. */
+/* TempestLens - web UI client.
+   Connects to the TempestLens server over a WebSocket, receives a full state
+   snapshot whenever the data changes, and renders it. Values arrive as
+   [value, unit, ...] lists, and sometimes as bare strings, so every read goes
+   through the tolerant helpers. */
 
 'use strict';
 

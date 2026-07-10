@@ -109,6 +109,10 @@ fonts/         bundled Inter fonts
 scripts/       install / deployment helpers
 ```
 
+## Credits
+
+TempestLens was inspired by [**WeatherFlow PiConsole**](https://github.com/peted-davis/WeatherFlow_PiConsole) by Peter Davis — a superb Raspberry Pi console for the Tempest. The original project is where this one's derived‑variable math and WeatherFlow API usage (station/device observations, history buckets, BetterForecast) were first worked out, and those served as the reference while porting the data pipeline to Node/TypeScript. Huge thanks to that project and its community.
+
 ## License
 
 MIT
