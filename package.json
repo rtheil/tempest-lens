@@ -1,6 +1,6 @@
 {
   "name": "tempest-lens",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "An unofficial, self-hosted dashboard for the WeatherFlow Tempest weather station. Great as a Raspberry Pi kiosk.",
   "type": "module",
   "bin": {
