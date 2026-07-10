@@ -112,6 +112,7 @@ function temperaturePane(root, opts) {
     high: q('.tp-high'), hightime: q('.tp-hightime'), low: q('.tp-low'), lowtime: q('.tp-lowtime'),
     dew: q('.tp-dew'), hum: q('.tp-hum'), trend: q('.tp-trend'), forecast: q('.tp-forecast'),
     todayicon: q('.tp-todayicon'), todayhi: q('.tp-todayhi'), todaylo: q('.tp-todaylo'), todayprecip: q('.tp-todayprecip'),
+    todaycard: q('.today-fc'),
   };
   return {
     render(s) {
@@ -134,6 +135,12 @@ function temperaturePane(root, opts) {
       setEl(els.todayhi, vu(fc0.high));
       setEl(els.todaylo, vu(fc0.low));
       if (els.todayprecip) els.todayprecip.innerHTML = FC_DROP + vu(fc0.precip, '0%');
+      // Make the TODAY card open the hourly overlay for today.
+      if (els.todaycard && fc0.dayNum != null) {
+        els.todaycard.classList.add('fc-tappable');
+        els.todaycard.dataset.hourlyDay = fc0.dayNum;
+        els.todaycard.dataset.hourlyDate = fc0.date || 'Today';
+      }
       renderForecast(els.forecast, s.forecast, forecastDays);
     },
   };
@@ -208,7 +215,11 @@ function renderForecast(el, list, max) {
     const dow  = stripMarkup(d.day || '');
     const icon = weatherIconSVG(d.icon || d.conditions || '');
     const precip = FC_DROP + vu(d.precip, '0%');
-    return '<div class="fc-day">'
+    // Tappable → opens the hourly overlay for this day (data-hourly-day is the join key).
+    const tap = (d.dayNum != null)
+      ? ' fc-tappable" data-hourly-day="' + d.dayNum + '" data-hourly-date="' + (d.date || dow) + '"'
+      : '"';
+    return '<div class="fc-day' + tap + '>'
       + '<div class="fc-dow">' + dow + '</div>'
       + '<div class="fc-icon">' + icon + '</div>'
       + '<div class="fc-temps"><span class="fc-hi">' + vu(d.high) + '</span>'
@@ -221,6 +232,40 @@ function renderForecast(el, list, max) {
   const cols = days.length ? `repeat(${days.length}, 1fr)` : '';
   if (el.style.gridTemplateColumns !== cols) el.style.gridTemplateColumns = cols;
   if (el.innerHTML !== html) el.innerHTML = html;
+}
+
+// Hour label honoring the 12/24-hour Display setting: 14 -> "2p" or "14".
+function hourLabel(h) {
+  if (h == null || isNaN(h)) return '--';
+  if (String(displayPrefs.TimeFormat || '').indexOf('24') >= 0) return String(h).padStart(2, '0');
+  const ap = h < 12 ? 'AM' : 'PM';
+  let hr = h % 12; if (hr === 0) hr = 12;
+  return hr + ' ' + ap;
+}
+
+// Open the hourly overlay for a given day (data-hourly-day = local day-of-month),
+// filtering the snapshot's hourly array to that day.
+function openHourly(dayNum, dateLabel) {
+  const panel = $('hourlyPanel'), scrim = $('hourlyScrim'), grid = $('hourlyGrid'), title = $('hourlyTitle');
+  if (!panel || !grid || !lastSnapshot) return;
+  const hrs = (lastSnapshot.hourly || []).filter((h) => String(h.day) === String(dayNum));
+  if (title) title.textContent = dateLabel || 'Hourly forecast';
+  grid.innerHTML = hrs.length
+    ? hrs.map((h) =>
+        '<div class="hr-cell">'
+        + '<div class="hr-time">' + hourLabel(h.hour) + '</div>'
+        + '<div class="hr-icon">' + weatherIconSVG(h.icon || h.cond || '') + '</div>'
+        + '<div class="hr-temp">' + vu(h.temp) + '</div>'
+        + '<div class="hr-precip">' + FC_DROP + vu(h.precip, '0%') + '</div>'
+        + '</div>'
+      ).join('')
+    : '<div class="hourly-empty">No hourly data for this day.</div>';
+  scrim.hidden = false;
+  panel.hidden = false;
+}
+function closeHourly() {
+  if ($('hourlyPanel')) $('hourlyPanel').hidden = true;
+  if ($('hourlyScrim')) $('hourlyScrim').hidden = true;
 }
 
 // Draw the illuminated portion of the moon into #moonLit (viewBox 100x100).
@@ -291,6 +336,7 @@ function uvLabel(v) {
 let baroLen = 0;
 
 function render(s) {
+  lastSnapshot = s;
   const obs = s.obs || {}, astro = s.astro || {}, met = s.met || {},
         sager = s.sager || {}, meta = s.meta || {}, upd = s.update || {};
   if (s.display) displayPrefs = s.display;
@@ -475,6 +521,7 @@ async function runUpdate() {
 
 // ---- connection -------------------------------------------------------- //
 let lastUpdate = 0, connected = false;
+let lastSnapshot = null;
 
 function setLive(state, text) {
   const el = $('live');
@@ -854,6 +901,16 @@ function tick() {
   const runBtn = $('updateRun');
   if (runBtn) runBtn.addEventListener('click', runUpdate);
 
+  // Hourly overlay: tap a forecast day / the TODAY card to open; close via ✕,
+  // scrim, or Esc (delegated so it survives forecast re-renders).
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest && e.target.closest('[data-hourly-day]');
+    if (t) openHourly(t.dataset.hourlyDay, t.dataset.hourlyDate);
+  });
+  if ($('hourlyClose')) $('hourlyClose').addEventListener('click', closeHourly);
+  if ($('hourlyScrim')) $('hourlyScrim').addEventListener('click', closeHourly);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHourly(); });
+
   // Settings drawer
   // Mount the shared temperature pane in both hosts (dashboard tile + full layout).
   if ($('tempPaneHost')) dashTempPane = temperaturePane($('tempPaneHost'), { forecastDays: 5 });
@@ -864,7 +921,8 @@ function tick() {
   const overlayOpen = (target) => {
     if ($('setupScreen') && !$('setupScreen').hidden) return true;
     if ($('settingsDrawer') && $('settingsDrawer').classList.contains('open')) return true;
-    return !!(target && target.closest && target.closest('#settingsDrawer, #settingsScrim, #setupScreen'));
+    if ($('hourlyPanel') && !$('hourlyPanel').hidden) return true;
+    return !!(target && target.closest && target.closest('#settingsDrawer, #settingsScrim, #setupScreen, #hourlyPanel, #hourlyScrim'));
   };
   let sx = 0, sy = 0, swiping = false;
   document.addEventListener('touchstart', (e) => {

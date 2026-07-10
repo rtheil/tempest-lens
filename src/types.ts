@@ -49,6 +49,7 @@ export interface Snapshot {
   met: Record<string, unknown>;
   sager: Record<string, unknown>;
   forecast: unknown[];
+  hourly: unknown[];
   update: { available: boolean; current: string; latest: string; url: string; notes: string; notify: boolean };
   display: { TimeFormat: string; DateFormat: string };
 }

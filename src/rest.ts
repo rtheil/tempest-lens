@@ -25,14 +25,29 @@ export interface ForecastResult {
   sunriseEpoch: number | null;
   sunsetEpoch: number | null;
   forecast: ForecastDay[];
+  hourly: HourlyEntry[];
 }
 
 export interface ForecastDay {
   day: string;
+  dayNum: number | null; // local day-of-month — join key to HourlyEntry.day
+  date: string; // formatted header label, e.g. "Monday, Jul 14"
   icon: string;
   high: [string, string];
   low: [string, string];
   precip: [string, string];
+}
+
+export interface HourlyEntry {
+  t: number | null; // epoch seconds
+  day: number | null; // local day-of-month (groups hours under a ForecastDay)
+  hour: number | null; // local hour 0-23
+  temp: [string, string];
+  feels: [string, string];
+  icon: string;
+  cond: string;
+  precip: [string, string]; // probability %
+  humidity: [string, string];
 }
 
 /** List all stations available to a token (for first-run setup + station
@@ -352,10 +367,24 @@ export async function fetchForecast(
 
   const forecast: ForecastDay[] = daily.slice(0, 10).map((d, i) => ({
     day: i === 0 ? 'Today' : weekday(d.day_start_local, tz),
+    dayNum: num(d.day_num),
+    date: forecastDate(d.day_start_local, tz),
     icon: d.icon ?? '',
     high: temp(d.air_temp_high, tempUnit),
     low: temp(d.air_temp_low, tempUnit),
     precip: pct(d.precip_probability),
+  }));
+
+  const hourly: HourlyEntry[] = (j?.forecast?.hourly ?? []).map((h: any) => ({
+    t: num(h.time),
+    day: num(h.local_day),
+    hour: num(h.local_hour),
+    temp: temp(h.air_temperature, tempUnit),
+    feels: temp(h.feels_like, tempUnit),
+    icon: h.icon ?? '',
+    cond: h.conditions ?? '',
+    precip: pct(h.precip_probability),
+    humidity: pct(h.relative_humidity),
   }));
 
   return {
@@ -363,7 +392,24 @@ export async function fetchForecast(
     sunriseEpoch: num(d0.sunrise),
     sunsetEpoch: num(d0.sunset),
     forecast,
+    hourly,
   };
+}
+
+/** Format an epoch (seconds) as a day header in the station timezone,
+ *  e.g. "Monday, Jul 14". */
+function forecastDate(epochS: number | null, tz: string | null): string {
+  if (epochS == null) return '';
+  try {
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      ...(tz ? { timeZone: tz } : {}),
+    }).format(new Date(epochS * 1000));
+  } catch {
+    return '';
+  }
 }
 
 /** Format an epoch (seconds) as a local clock time in the station timezone. */

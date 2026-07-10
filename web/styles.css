@@ -359,9 +359,50 @@ body {
   flex: none; width: 15px; height: 15px; border-radius: 50%;
   border: 2px solid color-mix(in srgb, var(--amber) 35%, transparent);
   border-top-color: var(--amber);
-  animation: spin .8s linear infinite;
+  animation: spin .8s linear infinite;  /* @keyframes spin defined above */
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+/* tappable forecast days / TODAY card (open the hourly overlay) */
+.fc-tappable { cursor: pointer; border-radius: 10px; transition: background .12s ease; }
+.fc-tappable:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+
+/* hourly forecast overlay */
+.hourly-scrim {
+  position: fixed; inset: 0; z-index: 200;
+  background: color-mix(in srgb, var(--ground) 70%, transparent);
+}
+.hourly-panel {
+  position: fixed; z-index: 201;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: min(92vw, 760px); max-height: 86vh; display: flex; flex-direction: column;
+  background: linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.hourly-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+  font-size: clamp(14px, 1.7vw, 20px); font-weight: 700;
+}
+.hourly-grid {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: clamp(6px, 1vw, 12px);
+  padding: clamp(12px, 1.6vw, 20px); overflow-y: auto;
+}
+.hr-cell {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 4px; border-radius: 10px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+.hr-time { font-size: clamp(10px, 1.1vw, 13px); font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .5px; }
+.hr-icon .wicon { width: clamp(26px, 3vw, 40px); height: auto; display: block; }
+.hr-temp { font-size: clamp(15px, 1.8vw, 22px); font-weight: 600; }
+.hr-precip { display: flex; align-items: center; gap: 2px; font-size: clamp(9px, 1vw, 12px); font-weight: 600; color: var(--text); opacity: .8; min-height: 1.1em; }
+.hourly-empty { grid-column: 1 / -1; text-align: center; color: var(--muted); padding: 24px; }
+
+/* on the small 800x480 panel, 4 columns fit better than 6 */
+@media (max-width: 900px) {
+  .hourly-grid { grid-template-columns: repeat(4, 1fr); }
+}
 
 /* ---------- grid ---------- */
 .grid {

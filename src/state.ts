@@ -54,6 +54,7 @@ export class State {
 
   private met: Record<string, unknown> = {};
   private fcast: unknown[] = [];
+  private hourly: unknown[] = [];
   private sunriseEpoch: number | null = null;
   private sunsetEpoch: number | null = null;
 
@@ -150,6 +151,7 @@ export class State {
   setForecast(f: ForecastResult): void {
     this.met = f.met;
     this.fcast = f.forecast;
+    this.hourly = f.hourly;
     this.sunriseEpoch = f.sunriseEpoch;
     this.sunsetEpoch = f.sunsetEpoch;
     this.version++;
@@ -265,6 +267,7 @@ export class State {
       met: this.met,
       sager: {},
       forecast: this.fcast,
+      hourly: this.hourly,
       update: { ...this.updateInfo, notify: this.display.UpdateNotification === '1' },
       display: this.display,
     };
