@@ -109,6 +109,17 @@ sudo systemctl enable "$SERVICE"
 sudo systemctl restart "$SERVICE"
 
 # --------------------------------------------------------------------------- #
+# Let the service user reboot / power off without a password, so the in-app
+# Power buttons work. Scoped to exactly those two commands.
+say "Granting reboot/shutdown permission (sudoers)…"
+SUDOERS=/etc/sudoers.d/tempest-lens
+sudo tee "$SUDOERS" >/dev/null <<SUDO
+${USER_NAME} ALL=(root) NOPASSWD: /usr/bin/systemctl reboot, /usr/bin/systemctl poweroff, /bin/systemctl reboot, /bin/systemctl poweroff
+SUDO
+sudo chmod 0440 "$SUDOERS"
+sudo visudo -cf "$SUDOERS" >/dev/null || { warn "sudoers file invalid — removing it."; sudo rm -f "$SUDOERS"; }
+
+# --------------------------------------------------------------------------- #
 say "Setting up the Chromium kiosk…"
 CHROMIUM="$(command -v chromium || command -v chromium-browser || true)"
 if [ -z "$CHROMIUM" ]; then

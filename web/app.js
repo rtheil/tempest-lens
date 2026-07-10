@@ -736,11 +736,26 @@ function confirmDialog(opts, onConfirm) {
 function systemAction(action) {
   const cfg = POWER[action];
   if (!cfg) return;
-  confirmDialog(cfg, () => {
-    fetch('/api/system', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action }),
-    }).catch(() => {});
+  confirmDialog(cfg, async () => {
+    let ok = false;
+    try {
+      const r = await fetch('/api/system', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      ok = r.ok;
+    } catch (err) {
+      // reboot/shutdown drop the connection as the box goes down — treat as started.
+      ok = action !== 'exit';
+    }
+    if (!ok) {
+      // Don't strand the user on a fake "Rebooting…" overlay — surface the failure.
+      confirmDialog(
+        { title: 'Action failed', body: `Could not ${action}. The server may lack permission for this action.`, confirm: 'OK', danger: false },
+        () => {},
+      );
+      return;
+    }
     const ov = document.createElement('div');
     ov.className = 'sys-overlay';
     ov.innerHTML = `<div class="spin"></div><p>${cfg.overlay}</p>`;

@@ -133,19 +133,35 @@ function startBackfill(): void {
     }
   };
 
-  void refreshAll(true);
+  void bootBackfillUntilReady();
   setInterval(refreshForecast, 30 * 60 * 1000); // forecast: 30 min
   setInterval(refreshStationObs, 60 * 1000); // derived/accumulated: 1 min
   setInterval(refreshHistory, 5 * 60 * 1000); // daily high/low + 24h + rain/lightning: 5 min
   console.log('[tempest-lens] REST backfill active (station obs, history, forecast).');
 }
 
-/** Re-fetch station metadata (name/elevation/device) then everything else. */
-async function refreshAll(logStation = false): Promise<void> {
+// The boot backfill can hit a not-yet-ready network (esp. right after a Pi
+// reboot). fetchStation isn't on an interval and the forecast interval is 30m,
+// so a failed boot would leave the dashboard half-empty for a long time. Retry
+// the full backfill with a short backoff until station metadata loads.
+const BACKFILL_BACKOFF_S = [10, 20, 30, 60, 120];
+let backfillRetry = 0;
+async function bootBackfillUntilReady(): Promise<void> {
+  if (await refreshAll(backfillRetry === 0)) return;
+  const wait = BACKFILL_BACKOFF_S[Math.min(backfillRetry++, BACKFILL_BACKOFF_S.length - 1)];
+  console.warn(`[tempest-lens] backfill not ready (network?) — retrying in ${wait}s`);
+  setTimeout(() => void bootBackfillUntilReady(), wait * 1000);
+}
+
+/** Re-fetch station metadata (name/elevation/device) then everything else.
+ *  Returns true once station metadata has loaded (the readiness signal). */
+async function refreshAll(logStation = false): Promise<boolean> {
+  let stationOk = false;
   try {
     const info = await fetchStation(creds.token as string, creds.stationId as number);
     if (info) {
       state.setStation(info);
+      stationOk = true;
       if (logStation) {
         console.log(
           `[tempest-lens] station: ${info.name} — ${info.elevationM}m, ${info.timezone}, ` +
@@ -157,6 +173,7 @@ async function refreshAll(logStation = false): Promise<void> {
     warn('station fetch', err);
   }
   await Promise.all([refreshForecast(), refreshStationObs(), refreshHistory()]);
+  return stationOk;
 }
 
 /** Apply new credentials from setup / settings: persist, (re)start backfill. */
@@ -215,6 +232,23 @@ async function runUpdate(): Promise<{ ok: boolean; error?: string; log?: string 
 }
 
 // --------------------------------------------------------------------------- //
+// Power actions. reboot/shutdown need root — granted via a NOPASSWD sudoers    //
+// rule the Pi installer writes (/etc/sudoers.d/tempest-lens). 'exit' just      //
+// closes the kiosk browser (drops to the desktop); no privilege needed.        //
+// --------------------------------------------------------------------------- //
+async function runSystem(action: string): Promise<{ ok: boolean; error?: string }> {
+  let cmd: string;
+  if (action === 'reboot') cmd = 'sudo -n systemctl reboot';
+  else if (action === 'shutdown') cmd = 'sudo -n systemctl poweroff';
+  else if (action === 'exit') cmd = 'pkill -f chromium';
+  else return { ok: false, error: 'unknown action' };
+  console.log(`[tempest-lens] system action: ${action}`);
+  const { code, out } = await sh(cmd); // systemctl returns 0 immediately, then the box goes down
+  if (code !== 0) return { ok: false, error: out.trim().slice(0, 200) || `\`${cmd}\` failed` };
+  return { ok: true };
+}
+
+// --------------------------------------------------------------------------- //
 // Server + settings/setup hooks                                               //
 // --------------------------------------------------------------------------- //
 const hooks: ServerHooks = {
@@ -255,6 +289,7 @@ const hooks: ServerHooks = {
     return { ok: true, stations }; // caller must pick, then POST with stationId
   },
   update: runUpdate,
+  system: runSystem,
 };
 
 startServer(state, HTTP_PORT, '0.0.0.0', hooks);

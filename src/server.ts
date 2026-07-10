@@ -41,6 +41,8 @@ export interface ServerHooks {
    *  the build; on success the process exits shortly after so systemd relaunches
    *  it on the new code. */
   update(): Promise<{ ok: boolean; error?: string; log?: string }>;
+  /** Power action: 'reboot' | 'shutdown' | 'exit'. */
+  system(action: string): Promise<{ ok: boolean; error?: string }>;
 }
 
 export function startServer(state: State, port: number, host = '0.0.0.0', hooks?: ServerHooks) {
@@ -88,9 +90,15 @@ export function startServer(state: State, port: number, host = '0.0.0.0', hooks?
       if (!result.ok) res.statusCode = result.error === 'already up to date' ? 409 : 500;
       return json(res, result);
     }
-    if (p === '/api/system') {
-      res.statusCode = 501;
-      return res.end('not implemented');
+    if (p === '/api/system' && req.method === 'POST') {
+      if (!hooks?.system) {
+        res.statusCode = 501;
+        return json(res, { ok: false, error: 'not supported' });
+      }
+      const body = await readJson(req);
+      const result = await hooks.system(String(body.action ?? ''));
+      if (!result.ok) res.statusCode = result.error === 'unknown action' ? 400 : 500;
+      return json(res, result);
     }
 
     // Static files: /fonts/* from fonts/, everything else from web/.
