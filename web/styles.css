@@ -217,6 +217,14 @@ body {
   padding: 12px 14px; width: 100%;
 }
 .setup-input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; border-color: var(--cyan); }
+.setup-remote {
+  font-size: 13px; line-height: 1.5; color: var(--muted);
+  background: color-mix(in srgb, var(--cyan) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cyan) 30%, transparent);
+  border-radius: 10px; padding: 12px 14px; margin: 0 0 22px;
+}
+.setup-remote b { color: var(--text); }
+.setup-remote a { color: var(--cyan); text-decoration: none; font-weight: 700; }
 .setup-hint { font-size: 12px; color: var(--muted); margin: 10px 0 20px; }
 .setup-hint a { color: var(--cyan); text-decoration: none; font-weight: 600; }
 .setup-hint a:hover { text-decoration: underline; }

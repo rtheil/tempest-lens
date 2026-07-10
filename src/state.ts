@@ -63,8 +63,13 @@ export class State {
   private hist: History | null = null;
   private updateInfo: UpdateInfo = { available: false, current: VERSION, latest: '', url: '' };
   private configured = false;
+  private access = { host: '', ip: '' };
 
   constructor(private units: Units, private display: DisplayPrefs) {}
+
+  setAccess(a: { host: string; ip: string }): void {
+    this.access = a;
+  }
 
   setConfigured(b: boolean): void {
     if (this.configured !== b) {
@@ -252,6 +257,7 @@ export class State {
       build: BUILD,
       version: this.version,
       configured: this.configured,
+      access: this.access,
       meta: this.meta,
       obs: this.buildObs(nowEpochS),
       astro: this.buildAstro(nowEpochS),

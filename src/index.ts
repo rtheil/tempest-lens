@@ -7,6 +7,7 @@
  * from the config file at boot, or from the first-run setup screen at runtime.
  */
 
+import os from 'node:os';
 import { loadConfig, saveSettings, saveCredentials } from './config.js';
 import { State, VERSION, REPO, REPO_URL } from './state.js';
 import { startUdpListener, TEMPEST_UDP_PORT } from './udp.js';
@@ -26,6 +27,21 @@ import {
 const HTTP_PORT = Number(process.env.PORT ?? 8000);
 const cfg = loadConfig();
 const state = new State(cfg.units, cfg.display);
+
+// Reachable addresses, shown on the setup screen so a keyboard-less kiosk can
+// point the user to open it from a phone/computer on the same network.
+function lanIPv4(): string {
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const ni of list || []) {
+      if (ni.family === 'IPv4' && !ni.internal) return ni.address;
+    }
+  }
+  return '';
+}
+state.setAccess({
+  host: `${os.hostname()}.local:${HTTP_PORT}`,
+  ip: lanIPv4() ? `${lanIPv4()}:${HTTP_PORT}` : '',
+});
 
 // Live credentials — mutable so first-run setup / Settings can update them
 // without a restart. The REST refreshers read the latest values each tick.

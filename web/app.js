@@ -271,7 +271,10 @@ function render(s) {
         sager = s.sager || {}, meta = s.meta || {}, upd = s.update || {};
   if (s.display) displayPrefs = s.display;
   applyTheme(displayPrefs.Theme || 'dark');
-  if (typeof s.configured === 'boolean') setupVisible(!s.configured);
+  if (typeof s.configured === 'boolean') {
+    setupVisible(!s.configured);
+    if (!s.configured) updateSetupRemote(s.access);
+  }
 
   // Layout dispatch: show the active screen (dashboard vs temperature).
   applyLayout(currentLayout());
@@ -641,6 +644,19 @@ function systemAction(action) {
 function setupVisible(show) {
   const el = $('setupScreen');
   if (el) el.hidden = !show;
+}
+
+// When the setup screen is shown on the device itself (kiosk at localhost), a
+// user has no keyboard — point them to open it from a phone/computer instead.
+function updateSetupRemote(access) {
+  const el = $('setupRemote');
+  if (!el) return;
+  const onDevice = ['localhost', '127.0.0.1', ''].includes(location.hostname);
+  const urls = access ? [access.host, access.ip].filter(Boolean) : [];
+  if (!onDevice || !urls.length) { el.hidden = true; return; }
+  const links = urls.map((u) => `<a href="http://${u}">${u}</a>`).join(' &nbsp;·&nbsp; ');
+  el.innerHTML = `<b>No keyboard on this screen?</b><br>Open ${links} on a phone or computer on the same network to finish setup.`;
+  el.hidden = false;
 }
 
 function setSetupError(msg) {
