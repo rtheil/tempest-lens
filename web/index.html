@@ -71,7 +71,7 @@
     </div>
 
     <!-- ================= GRID ================= -->
-    <div class="grid">
+    <div class="grid" id="gridLayout">
 
       <!-- PRESSURE -->
       <div class="tile tall">
@@ -99,44 +99,8 @@
         </div>
       </div>
 
-      <!-- HERO: TEMPERATURE -->
-      <div class="tile tall wide hero">
-        <div class="hero-top">
-          <div>
-            <div class="tile-head"><span class="tile-accent" style="background:var(--amber)"></span><span class="tile-label">Outdoor Temperature</span></div>
-            <div class="temp-row">
-              <div class="temp-left">
-                <div class="temp-main"><span class="temp-val" id="outTemp">--</span></div>
-                <div class="temp-diff" id="tempDiff">&mdash;</div>
-                <span class="feels" id="feels">Feels like <b id="feelsLike">--</b></span>
-              </div>
-              <div class="hilo">
-                <div class="hilo-col">
-                  <div class="k">Today's High</div>
-                  <div class="hilo-val hi" id="tempMax">--</div>
-                  <div class="hilo-meta"><span id="tempMaxTime">--</span></div>
-                </div>
-                <div class="hilo-col">
-                  <div class="k">Today's Low</div>
-                  <div class="hilo-val lo" id="tempMin">--</div>
-                  <div class="hilo-meta"><span id="tempMinTime">--</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 5-day outlook fills the hero's middle space -->
-        <div class="forecast5" id="forecast5"></div>
-
-        <div class="hero-bottom">
-          <div class="substats">
-            <div class="stat"><div class="k">Dew Point</div><div class="v" id="dewPoint">--</div></div>
-            <div class="stat"><div class="k">Humidity</div><div class="v" id="humidity">--</div></div>
-            <div class="stat"><div class="k">3-hr Trend</div><div class="v" id="tempTrend">--</div></div>
-          </div>
-        </div>
-      </div>
+      <!-- HERO: TEMPERATURE (mounted by app.js — shared temperaturePane component) -->
+      <div class="tile tall wide hero" id="tempPaneHost"></div>
 
       <!-- WIND -->
       <div class="tile tall">
@@ -222,8 +186,8 @@
           <defs><clipPath id="moonClip"><circle cx="50" cy="50" r="46"/></clipPath></defs>
           <circle cx="50" cy="50" r="47" fill="none" stroke="var(--border-strong)" stroke-width="1"/>
           <g clip-path="url(#moonClip)">
-            <circle cx="50" cy="50" r="46" fill="#242d47"/>
-            <path id="moonLit" d="" fill="#eef2fb"/>
+            <circle cx="50" cy="50" r="46" fill="var(--moon-disc)"/>
+            <path id="moonLit" d="" fill="var(--moon-lit)"/>
           </g>
         </svg>
         <div class="moon-headline">
@@ -238,6 +202,11 @@
         </div>
       </div>
 
+    </div>
+
+    <!-- LAYOUT: temperature — the same tile/card, enlarged to fill the screen -->
+    <div class="layout-temp" id="tempLayout" hidden>
+      <div class="tile hero tp-large" id="tempLayoutCard"></div>
     </div>
   </div>
 

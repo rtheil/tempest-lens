@@ -7,12 +7,16 @@
 import type { Units } from './units.js';
 
 export interface DisplayPrefs {
+  Theme: string; // 'dark' | 'light' | 'auto'
+  Layout: string; // 'dashboard' | 'temp'
   TimeFormat: string; // '12 hr' | '24 hr'
   DateFormat: string;
   UpdateNotification: string; // '1' | '0'
 }
 
 export const DEFAULT_DISPLAY: DisplayPrefs = {
+  Theme: 'dark',
+  Layout: 'dashboard',
   TimeFormat: '12 hr',
   DateFormat: 'Mon, Jan 01 0000',
   UpdateNotification: '1',
@@ -46,6 +50,14 @@ export interface About {
 export function buildSchema(u: Units, d: DisplayPrefs, about: About): ConfigSchema {
   return {
     sections: [
+      {
+        name: 'Appearance',
+        title: 'Appearance',
+        fields: [
+          { section: 'Display', key: 'Theme', title: 'Theme', value: d.Theme, options: ['dark', 'light', 'auto'], labels: { dark: 'Dark', light: 'Light', auto: 'Auto' } },
+          { section: 'Display', key: 'Layout', title: 'Layout', value: d.Layout, options: ['dashboard', 'temp'], labels: { dashboard: 'Dashboard', temp: 'Temperature' } },
+        ],
+      },
       {
         name: 'Units',
         title: 'Units',

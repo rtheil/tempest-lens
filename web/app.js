@@ -15,6 +15,7 @@ const $ = (id) => document.getElementById(id);
 // Only touch the DOM when the value actually changes — avoids needless repaints
 // (which flicker badly on the Pi's software renderer).
 function set(id, text) { const el = $(id); if (el && el.textContent !== String(text)) el.textContent = String(text); }
+function setEl(el, text) { if (el && el.textContent !== String(text)) el.textContent = String(text); }
 function setHTML(id, html) { const el = $(id); if (el && el.innerHTML !== html) el.innerHTML = html; }
 function toArr(v) { return Array.isArray(v) ? v : [v]; }
 
@@ -34,6 +35,110 @@ const FEELS_BANDS = [
 ];
 function feelsColor(f) {
   return (FEELS_BANDS.find((b) => f >= b.min) || FEELS_BANDS[FEELS_BANDS.length - 1]).c;
+}
+
+// Apply the light/dark theme. 'auto' follows the OS preference.
+function applyTheme(pref) {
+  const dark = pref === 'dark' || (pref !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+}
+
+// The "X°F warmer/colder than 24h ago" headline (shared by dashboard + temp layout).
+function renderDiff(el, obs) {
+  if (!el) return;
+  const diffVal = part(obs.outTempDiff, 0, '--');
+  const diffWord = stripMarkup(part(obs.outTempDiff, 2, '')).toLowerCase();
+  if (diffVal === '--' || !diffWord || diffWord === 'same' || diffWord === '-') {
+    el.innerHTML = diffVal === '--' ? '' : 'About the same as 24h ago';
+    el.style.color = 'var(--muted)';
+  } else {
+    const arrow = /warm/.test(diffWord) ? '↑' : '↓';
+    el.innerHTML = `${arrow} <b>${diffVal}${part(obs.outTempDiff, 1, '')}</b> ${diffWord} than 24h ago`;
+    el.style.color = /warm/.test(diffWord) ? 'var(--amber-soft)' : 'var(--cyan)';
+  }
+}
+
+// Color a "Feels like" line by the temperature band of the value.
+function applyFeelsColor(el, obs) {
+  const v = parseFloat(part(obs.FeelsLike, 0, 'NaN'));
+  if (!el || isNaN(v)) return;
+  const f = /c/i.test(part(obs.FeelsLike, 1, '')) ? v * 9 / 5 + 32 : v;
+  el.style.color = feelsColor(f);
+}
+
+// Shared "Outdoor Temperature" pane. Mounted twice — in the dashboard tile
+// (5-day) and the full-screen Temperature layout (10-day, sized up via
+// .tp-large). One definition, so the two can never drift apart.
+const TEMP_PANE_HTML =
+  '<div class="hero-top"><div>'
+  + '<div class="tile-head"><span class="tile-accent" style="background:var(--amber)"></span><span class="tile-label">Outdoor Temperature</span></div>'
+  + '<div class="temp-row">'
+  + '<div class="temp-left">'
+  + '<div class="temp-main"><span class="temp-val tp-temp">--</span></div>'
+  + '<div class="temp-diff tp-diff">&mdash;</div>'
+  + '<span class="feels tp-feels">Feels like <b class="tp-feelsval">--</b></span>'
+  + '</div>'
+  + '<div class="hilo">'
+  + '<div class="hilo-col"><div class="k">Today\'s High</div><div class="hilo-val hi tp-high">--</div><div class="hilo-meta tp-hightime">--</div></div>'
+  + '<div class="hilo-col"><div class="k">Today\'s Low</div><div class="hilo-val lo tp-low">--</div><div class="hilo-meta tp-lowtime">--</div></div>'
+  + '</div>'
+  + '</div></div></div>'
+  + '<div class="forecast5 tp-forecast"></div>'
+  + '<div class="hero-bottom"><div class="substats">'
+  + '<div class="stat"><div class="k">Dew Point</div><div class="v tp-dew">--</div></div>'
+  + '<div class="stat"><div class="k">Humidity</div><div class="v tp-hum">--</div></div>'
+  + '<div class="stat"><div class="k">3-hr Trend</div><div class="v tp-trend">--</div></div>'
+  + '</div></div>';
+
+function temperaturePane(root, opts) {
+  const forecastDays = (opts && opts.forecastDays) || 5;
+  root.innerHTML = TEMP_PANE_HTML;
+  const q = (sel) => root.querySelector(sel);
+  const els = {
+    temp: q('.tp-temp'), diff: q('.tp-diff'), feels: q('.tp-feels'), feelsval: q('.tp-feelsval'),
+    high: q('.tp-high'), hightime: q('.tp-hightime'), low: q('.tp-low'), lowtime: q('.tp-lowtime'),
+    dew: q('.tp-dew'), hum: q('.tp-hum'), trend: q('.tp-trend'), forecast: q('.tp-forecast'),
+  };
+  return {
+    render(s) {
+      const obs = s.obs || {};
+      setEl(els.temp, vu(obs.outTemp));
+      renderDiff(els.diff, obs);
+      setEl(els.feelsval, vu(obs.FeelsLike));
+      applyFeelsColor(els.feels, obs);
+      setEl(els.high, vu(obs.outTempMax));
+      setEl(els.hightime, part(obs.outTempMax, 2, '--'));
+      setEl(els.low, vu(obs.outTempMin));
+      setEl(els.lowtime, part(obs.outTempMin, 2, '--'));
+      setEl(els.dew, vu(obs.DewPoint));
+      setEl(els.hum, vu(obs.Humidity));
+      setEl(els.trend, vu(obs.outTempTrend));
+      renderForecast(els.forecast, s.forecast, forecastDays);
+    },
+  };
+}
+
+// Pane instances (created in init, driven from render()).
+let dashTempPane = null, layoutTempPane = null;
+
+// Layouts, in swipe order. Adding a layout later = one more entry + its container.
+const LAYOUTS = ['dashboard', 'temp'];
+function currentLayout() { return displayPrefs.Layout || 'dashboard'; }
+function applyLayout(layout) {
+  if ($('gridLayout')) $('gridLayout').hidden = layout !== 'dashboard';
+  if ($('tempLayout')) $('tempLayout').hidden = layout !== 'temp';
+}
+// Advance the layout by dir (+1 next / -1 prev), wrapping. Applied instantly and
+// persisted so it sticks (and matches the Settings picker).
+function cycleLayout(dir) {
+  const cur = currentLayout();
+  let i = LAYOUTS.indexOf(cur);
+  if (i < 0) i = 0;
+  const next = LAYOUTS[(i + dir + LAYOUTS.length) % LAYOUTS.length];
+  if (next === cur) return;
+  displayPrefs.Layout = next;
+  applyLayout(next);
+  postConfig('Display', 'Layout', next, false);
 }
 
 // Weather icons as inline SVG (no emoji font needed — the Pi has none, and
@@ -72,11 +177,11 @@ function setWeatherIcon(token) {
   el.innerHTML = weatherIconSVG(token);
 }
 
-// 5-day outlook in the hero pane: weekday, icon, high (red), low (blue).
-function renderForecast(list) {
-  const el = $('forecast5');
+// Forecast strip: weekday, icon, high (red), low (blue), precip. Rendered into
+// element `el`, capped at `max` days (5 on the dashboard, 10 on the temp layout).
+function renderForecast(el, list, max) {
   if (!el) return;
-  const days = Array.isArray(list) ? list : [];
+  const days = (Array.isArray(list) ? list : []).slice(0, max);
   const drop = '<svg class="fc-drop" viewBox="0 0 24 24" aria-hidden="true">'
     + '<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z" fill="currentColor"/></svg>';
   const html = days.map(function (d) {
@@ -165,7 +270,14 @@ function render(s) {
   const obs = s.obs || {}, astro = s.astro || {}, met = s.met || {},
         sager = s.sager || {}, meta = s.meta || {}, upd = s.update || {};
   if (s.display) displayPrefs = s.display;
+  applyTheme(displayPrefs.Theme || 'dark');
   if (typeof s.configured === 'boolean') setupVisible(!s.configured);
+
+  // Layout dispatch: show the active screen (dashboard vs temperature).
+  applyLayout(currentLayout());
+  // Both temperature panes are the same component; render both (hidden one is cheap).
+  if (dashTempPane) dashTempPane.render(s);
+  if (layoutTempPane) layoutTempPane.render(s);
 
   // TEMPORARY: surface the UI build vs the server build so a stale cached
   // app.js is obvious (red tag + console warning).
@@ -189,41 +301,7 @@ function render(s) {
                meta.elevation ? `${Math.round(+meta.elevation * 3.28084).toLocaleString()} ft` : ''].filter(Boolean).join(' · ');
   if (loc) set('place', loc);
 
-  // Temperature
-  set('outTemp', vu(obs.outTemp));
-  set('tempMin', vu(obs.outTempMin));       // actual observed low
-  set('tempMax', vu(obs.outTempMax));       // actual observed high
-  set('tempMinTime', part(obs.outTempMin, 2, '--'));
-  set('tempMaxTime', part(obs.outTempMax, 2, '--'));
-  set('feelsLike', ' ' + vu(obs.FeelsLike));
-  // Color the whole "Feels like" line by temperature band.
-  const flVal = parseFloat(part(obs.FeelsLike, 0, 'NaN'));
-  if ($('feels') && !isNaN(flVal)) {
-    const unit = part(obs.FeelsLike, 1, '');
-    const f = /c/i.test(unit) ? flVal * 9 / 5 + 32 : flVal;
-    $('feels').style.color = feelsColor(f);
-  }
-  renderForecast(s.forecast);
-  set('dewPoint', vu(obs.DewPoint));
-  set('humidity', vu(obs.Humidity));
-  set('tempTrend', vu(obs.outTempTrend));
-
-  // 24-hour difference headline: "3.2°F warmer than yesterday"
-  const diffVal = part(obs.outTempDiff, 0, '--');
-  const diffWord = stripMarkup(part(obs.outTempDiff, 2, '')).toLowerCase();
-  const diffEl = $('tempDiff');
-  if (diffEl) {
-    if (diffVal === '--' || !diffWord || diffWord === 'same' || diffWord === '-') {
-      diffEl.innerHTML = diffVal === '--' ? '' : 'About the same as 24h ago';
-      diffEl.style.color = 'var(--muted)';
-    } else {
-      const arrow = /warm/.test(diffWord) ? '↑' : '↓';
-      diffEl.innerHTML = `${arrow} <b>${diffVal}${part(obs.outTempDiff, 1, '')}</b> ${diffWord} than 24h ago`;
-      diffEl.style.color = /warm/.test(diffWord) ? 'var(--amber-soft)' : 'var(--cyan)';
-    }
-  }
-  const trendColor = part(obs.outTempTrend, 2, '');
-  if ($('tempTrend') && trendColor && trendColor.startsWith('#')) $('tempTrend').style.color = trendColor;
+  // (Temperature pane is rendered by the shared component — see layout dispatch above.)
 
   // Wind — WindDir arrives formatted per the Direction unit ("248"+"°" or "WSW"),
   // so display it as-is and derive the needle angle (reverse-mapping cardinals).
@@ -696,6 +774,35 @@ function tick() {
   if (closeBtn) closeBtn.addEventListener('click', () => showPopover(false));
 
   // Settings drawer
+  // Mount the shared temperature pane in both hosts (dashboard tile + full layout).
+  if ($('tempPaneHost')) dashTempPane = temperaturePane($('tempPaneHost'), { forecastDays: 5 });
+  if ($('tempLayoutCard')) layoutTempPane = temperaturePane($('tempLayoutCard'), { forecastDays: 10 });
+
+  // Hidden touch gesture: swipe left/right to flip between layouts. No chrome.
+  // Ignored while the settings drawer or setup screen is open.
+  const overlayOpen = (target) => {
+    if ($('setupScreen') && !$('setupScreen').hidden) return true;
+    if ($('settingsDrawer') && $('settingsDrawer').classList.contains('open')) return true;
+    return !!(target && target.closest && target.closest('#settingsDrawer, #settingsScrim, #setupScreen'));
+  };
+  let sx = 0, sy = 0, swiping = false;
+  document.addEventListener('touchstart', (e) => {
+    swiping = e.touches.length === 1 && !overlayOpen(e.target);
+    if (swiping) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }
+  }, { passive: true });
+  document.addEventListener('touchend', (e) => {
+    if (!swiping) return;
+    swiping = false;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) cycleLayout(dx < 0 ? 1 : -1);
+  }, { passive: true });
+
+  // Re-apply theme when the OS light/dark preference changes (only matters in 'auto').
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if ((displayPrefs.Theme || 'dark') === 'auto') applyTheme('auto');
+  });
+
   // First-run setup
   const setupConnect = $('setupConnect'), setupToken = $('setupToken');
   if (setupConnect) setupConnect.addEventListener('click', () => doSetup());

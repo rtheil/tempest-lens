@@ -21,6 +21,8 @@
   --grid-glow: rgba(90, 209, 230, .05);
   --tile-radius: 18px;
   --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 10px 30px -12px rgba(0, 0, 0, .6);
+  --moon-disc: #242d47;
+  --moon-lit: #eef2fb;
 }
 
 :root[data-theme="light"] {
@@ -34,6 +36,8 @@
   --faint: #9aa4bd;
   --grid-glow: rgba(20, 120, 150, .04);
   --shadow: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 8px 24px -14px rgba(20, 40, 90, .35);
+  --moon-disc: #c4ccdd;
+  --moon-lit: #6b7796;
 }
 
 * { box-sizing: border-box; }
@@ -328,6 +332,36 @@ body {
   gap: clamp(8px, 1vw, 16px);
   min-height: 0;
 }
+
+/* LAYOUT: temperature — hosts the shared temperaturePane component blown up to
+   fill the screen. Same flex distribution as the .hero tile, so the pane looks
+   identical, just larger (via .tp-large below). */
+.layout-temp {
+  grid-row: 2; grid-column: 1;
+  display: flex; min-height: 0; min-width: 0;
+  padding: clamp(8px, 1vw, 16px);
+}
+.layout-temp .tile { flex: 1; }        /* the card fills the screen area */
+.tp-large { padding: clamp(20px, 3vw, 48px); }  /* roomier padding on the big card */
+
+/* .tp-large: type-scale overrides for the full-screen mount. Structure is
+   identical to the tile — only sizes and the forecast column count change. */
+.tp-large .tile-label { font-size: clamp(11px, 1.1vw, 14px); }
+.tp-large .temp-val { font-size: clamp(96px, 17vw, 240px); }
+.tp-large .temp-diff { font-size: clamp(15px, 1.7vw, 24px); }
+.tp-large .feels { font-size: clamp(15px, 1.7vw, 24px); }
+.tp-large .hilo { gap: clamp(16px, 3.5vh, 34px); }
+.tp-large .hilo-col .k { font-size: clamp(11px, 1.1vw, 14px); }
+.tp-large .hilo-val { font-size: clamp(40px, 5.5vw, 84px); }
+.tp-large .hilo-meta { font-size: clamp(12px, 1.2vw, 16px); }
+.tp-large .substats { gap: clamp(28px, 7vw, 90px); }
+.tp-large .stat .k { font-size: clamp(11px, 1.1vw, 13px); }
+.tp-large .stat .v { font-size: clamp(22px, 2.8vw, 40px); }
+.tp-large .forecast5 { grid-template-columns: repeat(10, 1fr); }
+.tp-large .fc-dow { font-size: clamp(11px, 1.1vw, 14px); }
+.tp-large .fc-hi { font-size: clamp(18px, 1.9vw, 26px); }
+.tp-large .fc-lo { font-size: clamp(16px, 1.7vw, 22px); }
+.tp-large .fc-icon .wicon { width: clamp(34px, 3.4vw, 52px); }
 
 .tile {
   position: relative;

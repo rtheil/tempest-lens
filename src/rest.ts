@@ -350,7 +350,7 @@ export async function fetchForecast(
     PrecipPercnt: pct(d0.precip_probability),
   };
 
-  const forecast: ForecastDay[] = daily.slice(0, 5).map((d, i) => ({
+  const forecast: ForecastDay[] = daily.slice(0, 10).map((d, i) => ({
     day: i === 0 ? 'Today' : weekday(d.day_start_local, tz),
     icon: d.icon ?? '',
     high: temp(d.air_temp_high, tempUnit),
