@@ -12,7 +12,6 @@ import type { Units } from './units.js';
 import {
   temp, wind, pressure, humidity, rainRate, rain, dist, dir, raw,
 } from './units.js';
-import { feelsWord } from './derived.js';
 import { formatClock, type History, type HighLow } from './rest.js';
 
 type Obj = Record<string, unknown>;
@@ -35,9 +34,7 @@ export function mapStationObs(
   const obs: Obs = {};
   obs.outTemp = temp(g('air_temperature'), u);
 
-  const fl = g('feels_like');
-  const ft = temp(fl, u, 0);
-  obs.FeelsLike = [ft[0], ft[1], fl != null ? feelsWord(fl * 9 / 5 + 32) : ''];
+  obs.FeelsLike = temp(g('feels_like'), u, 0);
 
   obs.DewPoint = temp(g('dew_point'), u, 0);
   obs.Humidity = humidity(g('relative_humidity'));
@@ -46,7 +43,7 @@ export function mapStationObs(
   obs.AvgWind = wind(g('wind_avg'), u);
   obs.WindGust = wind(g('wind_gust'), u);
   obs.MaxGust = wind(g('wind_gust'), u);
-  obs.WindDir = dir(g('wind_direction'));
+  obs.WindDir = dir(g('wind_direction'), u);
 
   obs.SLP = pressure(g('sea_level_pressure') ?? g('barometric_pressure'), u);
   obs.SLPTrend = trendPseudo(String(o.pressure_trend ?? ''), u);

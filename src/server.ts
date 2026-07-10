@@ -33,7 +33,13 @@ const MIME: Record<string, string> = {
   '.json': 'application/json',
 };
 
-export function startServer(state: State, port: number, host = '0.0.0.0') {
+export interface ServerHooks {
+  getConfig(): unknown;
+  setConfig(section: string, key: string, value: string): void;
+  setup(token: string, stationId?: number): Promise<{ ok: boolean; stations?: { id: number; name: string }[] }>;
+}
+
+export function startServer(state: State, port: number, host = '0.0.0.0', hooks?: ServerHooks) {
   const server = http.createServer(async (req, res) => {
     const url = new URL(req.url || '/', `http://${req.headers.host}`);
     const p = url.pathname;
@@ -41,7 +47,34 @@ export function startServer(state: State, port: number, host = '0.0.0.0') {
 
     if (p === '/api/health') return json(res, { status: 'ok', build: state.snapshot().build });
     if (p === '/api/snapshot') return json(res, state.snapshot());
-    if (p === '/api/config') return json(res, { sections: [] }); // stub for the PoC
+    if (p === '/api/config') {
+      if (req.method === 'POST') {
+        const body = await readJson(req);
+        if (hooks && typeof body.section === 'string' && typeof body.key === 'string') {
+          hooks.setConfig(body.section, body.key, String(body.value));
+          return json(res, { ok: true });
+        }
+        res.statusCode = 400;
+        return json(res, { ok: false, error: 'bad request' });
+      }
+      return json(res, hooks ? hooks.getConfig() : { sections: [] });
+    }
+    if (p === '/api/setup' && req.method === 'POST') {
+      const body = await readJson(req);
+      if (hooks && typeof body.token === 'string' && body.token.trim()) {
+        try {
+          const result = await hooks.setup(
+            body.token.trim(),
+            typeof body.stationId === 'number' ? body.stationId : undefined,
+          );
+          return json(res, result);
+        } catch {
+          return json(res, { ok: false });
+        }
+      }
+      res.statusCode = 400;
+      return json(res, { ok: false, error: 'token required' });
+    }
     if (p === '/api/system') {
       res.statusCode = 501;
       return res.end('not implemented');
@@ -99,4 +132,19 @@ export function startServer(state: State, port: number, host = '0.0.0.0') {
 function json(res: http.ServerResponse, data: unknown) {
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(data));
+}
+
+function readJson(req: http.IncomingMessage): Promise<any> {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', (c) => (data += c));
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(data || '{}'));
+      } catch {
+        resolve({});
+      }
+    });
+    req.on('error', () => resolve({}));
+  });
 }

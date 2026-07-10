@@ -41,12 +41,13 @@ export interface Obs {
 export interface Snapshot {
   build: string;
   version: number;
+  configured: boolean; // false = no token yet -> frontend shows first-run setup
   meta: Meta;
   obs: Obs;
   astro: Record<string, unknown>;
   met: Record<string, unknown>;
   sager: Record<string, unknown>;
   forecast: unknown[];
-  update: { available: boolean; current: string; latest: string; url: string };
+  update: { available: boolean; current: string; latest: string; url: string; notify: boolean };
   display: { TimeFormat: string; DateFormat: string };
 }

@@ -1,0 +1,4 @@
+# This project runs on Linux (Node / Raspberry Pi). Keep LF endings everywhere
+# so shell scripts fetched via `curl | bash` don't get CRLF and break.
+* text=auto eol=lf
+*.sh text eol=lf

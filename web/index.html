@@ -3,10 +3,27 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>WeatherFlow Console</title>
+  <title>TempestLens</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
+
+  <!-- ================= FIRST-RUN SETUP ================= -->
+  <div id="setupScreen" class="setup" hidden>
+    <div class="setup-card">
+      <div class="setup-logo">TempestLens</div>
+      <p class="setup-sub">Connect your WeatherFlow Tempest to get started.</p>
+      <label class="setup-label" for="setupToken">Personal access token</label>
+      <input id="setupToken" class="setup-input" type="text" placeholder="Paste your token…" autocomplete="off" spellcheck="false" autocapitalize="off">
+      <p class="setup-hint">Create one at
+        <a href="https://tempestwx.com/settings/tokens" target="_blank" rel="noopener">tempestwx.com → Settings → Tokens ↗</a>
+      </p>
+      <div id="setupStations" class="setup-stations" hidden></div>
+      <button id="setupConnect" class="setup-btn" type="button">Connect</button>
+      <p id="setupError" class="setup-error" hidden></p>
+    </div>
+  </div>
+
   <div class="console">
 
     <!-- ================= TOP BAR ================= -->
@@ -91,7 +108,7 @@
               <div class="temp-left">
                 <div class="temp-main"><span class="temp-val" id="outTemp">--</span></div>
                 <div class="temp-diff" id="tempDiff">&mdash;</div>
-                <span class="feels" id="feels">Feels like <b id="feelsLike">--</b><span id="feelsDesc"></span></span>
+                <span class="feels" id="feels">Feels like <b id="feelsLike">--</b></span>
               </div>
               <div class="hilo">
                 <div class="hilo-col">

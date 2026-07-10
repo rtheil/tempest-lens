@@ -24,8 +24,19 @@ import {
   type HighLow,
 } from './rest.js';
 import { mapStationObs } from './station.js';
+import type { DisplayPrefs } from './settings.js';
 
 export const BUILD = '0.1.0-poc';
+export const VERSION = '0.1.0';
+export const REPO = 'rtheil/tempest-lens';
+export const REPO_URL = 'https://github.com/rtheil/tempest-lens';
+
+interface UpdateInfo {
+  available: boolean;
+  current: string;
+  latest: string;
+  url: string;
+}
 
 export class State {
   private version = 0;
@@ -50,11 +61,47 @@ export class State {
   private temp24hAgoC: number | null = null;
   private temp3hAgoC: number | null = null;
   private hist: History | null = null;
+  private updateInfo: UpdateInfo = { available: false, current: VERSION, latest: '', url: '' };
+  private configured = false;
 
-  constructor(private units: Units) {}
+  constructor(private units: Units, private display: DisplayPrefs) {}
+
+  setConfigured(b: boolean): void {
+    if (this.configured !== b) {
+      this.configured = b;
+      this.version++;
+    }
+  }
+
+  get update(): UpdateInfo {
+    return this.updateInfo;
+  }
+
+  setUpdate(info: { available: boolean; latest: string; url: string }): void {
+    this.updateInfo = { available: info.available, current: VERSION, latest: info.latest, url: info.url };
+    this.version++;
+  }
 
   get timezone(): string | null {
     return this.tz;
+  }
+
+  get currentUnits(): Units {
+    return this.units;
+  }
+
+  get displayPrefs(): DisplayPrefs {
+    return this.display;
+  }
+
+  setUnits(u: Units): void {
+    this.units = u;
+    this.version++;
+  }
+
+  setDisplay(d: DisplayPrefs): void {
+    this.display = d;
+    this.version++;
   }
 
   get elevation(): number | null {
@@ -135,7 +182,7 @@ export class State {
       // Live wind overlay between station polls.
       if (this.rapid) {
         obs.WindSpd = wind(this.rapid.windSpeed, this.units);
-        obs.WindDir = dir(Math.round(this.rapid.windDir));
+        obs.WindDir = dir(Math.round(this.rapid.windDir), this.units);
       }
       return obs;
     }
@@ -171,13 +218,13 @@ export class State {
 
       if (!this.rapid) {
         obs.WindSpd = wind(o.windAvg, u);
-        obs.WindDir = dir(o.windDir);
+        obs.WindDir = dir(o.windDir, u);
       }
     }
 
     if (this.rapid) {
       obs.WindSpd = wind(this.rapid.windSpeed, u);
-      obs.WindDir = dir(Math.round(this.rapid.windDir));
+      obs.WindDir = dir(Math.round(this.rapid.windDir), u);
     }
 
     return obs;
@@ -204,14 +251,15 @@ export class State {
     return {
       build: BUILD,
       version: this.version,
+      configured: this.configured,
       meta: this.meta,
       obs: this.buildObs(nowEpochS),
       astro: this.buildAstro(nowEpochS),
       met: this.met,
       sager: {},
       forecast: this.fcast,
-      update: { available: false, current: BUILD, latest: '', url: '' },
-      display: { TimeFormat: '12 hr', DateFormat: 'ddd, DD MMM YYYY' },
+      update: { ...this.updateInfo, notify: this.display.UpdateNotification === '1' },
+      display: this.display,
     };
   }
 }

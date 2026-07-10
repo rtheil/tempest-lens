@@ -35,6 +35,18 @@ export interface ForecastDay {
   precip: [string, string];
 }
 
+/** List all stations available to a token (for first-run setup + station
+ *  picker). Also validates the token: an invalid token throws. */
+export async function fetchStations(token: string): Promise<{ id: number; name: string }[]> {
+  const r = await fetch(`${BASE}/stations?token=${encodeURIComponent(token)}`);
+  if (!r.ok) throw new Error(`stations HTTP ${r.status}`);
+  const j: any = await r.json();
+  const list: any[] = j?.stations ?? [];
+  return list
+    .map((s) => ({ id: num(s.station_id), name: s.name ?? s.public_name ?? `Station ${s.station_id}` }))
+    .filter((s): s is { id: number; name: string } => s.id != null);
+}
+
 export async function fetchStation(token: string, stationId: number): Promise<StationInfo | null> {
   const url = `${BASE}/stations/${stationId}?token=${encodeURIComponent(token)}`;
   const r = await fetch(url);
@@ -65,6 +77,20 @@ export async function fetchStation(token: string, stationId: number): Promise<St
     deviceId,
     deviceType,
   };
+}
+
+/** Check GitHub for the latest release of the given repo (e.g. "owner/name").
+ *  Returns the tag + URL, or null if there are no releases / on error. */
+export async function fetchLatestRelease(
+  repo: string,
+): Promise<{ tag: string; url: string } | null> {
+  const r = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
+    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'tempest-lens' },
+  });
+  if (r.status === 404) return null; // no releases yet
+  if (!r.ok) throw new Error(`github releases HTTP ${r.status}`);
+  const j: any = await r.json();
+  return j?.tag_name ? { tag: String(j.tag_name), url: j.html_url ?? '' } : null;
 }
 
 /** Latest station observation object (WeatherFlow's server-side derived +

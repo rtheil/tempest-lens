@@ -10,6 +10,7 @@ export interface Units {
   pressure: 'inhg' | 'mb' | 'mmhg';
   rain: 'in' | 'mm';
   distance: 'mi' | 'km';
+  direction: 'cardinal' | 'degrees';
 }
 
 export const DEFAULT_UNITS: Units = {
@@ -18,6 +19,7 @@ export const DEFAULT_UNITS: Units = {
   pressure: 'inhg',
   rain: 'in',
   distance: 'mi',
+  direction: 'cardinal',
 };
 
 type V = [string, string];
@@ -78,9 +80,17 @@ export function dist(km: number | null, u: Units): V {
   return [(u.distance === 'mi' ? km * 0.621371 : km).toFixed(0), unit];
 }
 
-/** Wind direction in degrees. */
-export function dir(deg: number | null): V {
-  return ok(deg) ? [Math.round(deg).toString(), '°'] : ['--', '°'];
+const COMPASS = [
+  'N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+  'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW',
+];
+
+/** Wind direction — compass point (e.g. "SSW") or degrees (e.g. "211°"). */
+export function dir(deg: number | null, u: Units): V {
+  if (!ok(deg)) return ['--', u.direction === 'cardinal' ? '' : '°'];
+  return u.direction === 'cardinal'
+    ? [COMPASS[Math.round(deg / 22.5) % 16], '']
+    : [Math.round(deg).toString(), '°'];
 }
 
 /** Dew point (Magnus formula), returns °C from air temp °C and RH %. */

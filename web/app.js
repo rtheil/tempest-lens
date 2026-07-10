@@ -22,13 +22,18 @@ function toArr(v) { return Array.isArray(v) ? v : [v]; }
 // text fields, leaving plain text.
 function stripMarkup(s) { return (s == null ? '' : String(s)).replace(/\[\/?[^\]]*\]/g, '').trim(); }
 
-// Normalize the feels-like descriptor. The console emits "Feeling hot"; the dev
-// preview emits "Hot". Strip any leading "Feeling " and drop placeholders so both
-// render the same short word (e.g. "Hot").
-function feelsWord(s) {
-  s = stripMarkup(s).replace(/^feeling\s+/i, '').trim();
-  if (!s || s === '-') return '';
-  return s[0].toUpperCase() + s.slice(1);
+// Feels-like value color, by static temperature bands (°F). Replaces the old
+// "Warm/Hot" word with an at-a-glance visual cue on the number itself.
+const FEELS_BANDS = [
+  { min: 95, c: 'var(--crit)' },       // very hot
+  { min: 86, c: 'var(--warn)' },       // hot
+  { min: 72, c: 'var(--amber-soft)' }, // warm
+  { min: 58, c: 'var(--good)' },       // comfortable
+  { min: 45, c: 'var(--cyan)' },       // cool
+  { min: -Infinity, c: 'var(--violet)' }, // cold
+];
+function feelsColor(f) {
+  return (FEELS_BANDS.find((b) => f >= b.min) || FEELS_BANDS[FEELS_BANDS.length - 1]).c;
 }
 
 // Weather icons as inline SVG (no emoji font needed — the Pi has none, and
@@ -160,6 +165,7 @@ function render(s) {
   const obs = s.obs || {}, astro = s.astro || {}, met = s.met || {},
         sager = s.sager || {}, meta = s.meta || {}, upd = s.update || {};
   if (s.display) displayPrefs = s.display;
+  if (typeof s.configured === 'boolean') setupVisible(!s.configured);
 
   // TEMPORARY: surface the UI build vs the server build so a stale cached
   // app.js is obvious (red tag + console warning).
@@ -190,7 +196,13 @@ function render(s) {
   set('tempMinTime', part(obs.outTempMin, 2, '--'));
   set('tempMaxTime', part(obs.outTempMax, 2, '--'));
   set('feelsLike', ' ' + vu(obs.FeelsLike));
-  set('feelsDesc', feelsWord(part(obs.FeelsLike, 2, '')));
+  // Color the whole "Feels like" line by temperature band.
+  const flVal = parseFloat(part(obs.FeelsLike, 0, 'NaN'));
+  if ($('feels') && !isNaN(flVal)) {
+    const unit = part(obs.FeelsLike, 1, '');
+    const f = /c/i.test(unit) ? flVal * 9 / 5 + 32 : flVal;
+    $('feels').style.color = feelsColor(f);
+  }
   renderForecast(s.forecast);
   set('dewPoint', vu(obs.DewPoint));
   set('humidity', vu(obs.Humidity));
@@ -423,6 +435,23 @@ function toggleControl(f) {
   return btn;
 }
 
+function infoControl(f) {
+  const span = document.createElement('span');
+  span.className = 'set-info';
+  span.textContent = f.value;
+  return span;
+}
+
+function linkControl(f) {
+  const a = document.createElement('a');
+  a.className = 'set-link';
+  a.href = f.value;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.textContent = f.label || f.value;
+  return a;
+}
+
 function stepperControl(f) {
   const wrap = document.createElement('div');
   wrap.className = 'stepper';
@@ -469,6 +498,8 @@ function renderSettings(cfg) {
       row.appendChild(label);
       const control = f.type === 'stepper' ? stepperControl(f)
         : f.type === 'toggle' ? toggleControl(f)
+        : f.type === 'info' ? infoControl(f)
+        : f.type === 'link' ? linkControl(f)
         : segControl(f);
       row.appendChild(control);
       wrap.appendChild(row);
@@ -525,6 +556,68 @@ function systemAction(action) {
     ov.className = 'sys-overlay';
     ov.innerHTML = `<div class="spin"></div><p>${cfg.overlay}</p>`;
     document.body.appendChild(ov);
+  });
+}
+
+// ---- first-run setup --------------------------------------------------- //
+function setupVisible(show) {
+  const el = $('setupScreen');
+  if (el) el.hidden = !show;
+}
+
+function setSetupError(msg) {
+  const el = $('setupError');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.hidden = !msg;
+}
+
+function resetSetupBtn() {
+  const b = $('setupConnect');
+  if (b) { b.disabled = false; b.textContent = 'Connect'; }
+}
+
+async function doSetup(stationId) {
+  const token = ($('setupToken').value || '').trim();
+  if (!token) { setSetupError('Paste your token first.'); return; }
+  setSetupError('');
+  const btn = $('setupConnect');
+  if (btn) { btn.disabled = true; btn.textContent = 'Connecting…'; }
+  try {
+    const body = stationId != null ? { token, stationId } : { token };
+    const r = await fetch('/api/setup', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }).then((res) => res.json());
+    if (!r.ok) { setSetupError('Couldn’t validate that token — double-check it and try again.'); resetSetupBtn(); return; }
+    if (stationId == null && Array.isArray(r.stations) && r.stations.length > 1) {
+      renderStationPicker(r.stations);
+      resetSetupBtn();
+      return;
+    }
+    // Success: the next snapshot reports configured=true and swaps to the dashboard.
+    if (btn) btn.textContent = 'Connected!';
+  } catch {
+    setSetupError('Network error — is the token correct?');
+    resetSetupBtn();
+  }
+}
+
+function renderStationPicker(stations) {
+  const el = $('setupStations');
+  if (!el) return;
+  el.hidden = false;
+  el.innerHTML = '';
+  const label = document.createElement('div');
+  label.className = 'setup-label';
+  label.textContent = 'Choose your station';
+  el.appendChild(label);
+  stations.forEach((s) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'setup-station';
+    b.textContent = s.name;
+    b.addEventListener('click', () => doSetup(s.id));
+    el.appendChild(b);
   });
 }
 
@@ -603,6 +696,11 @@ function tick() {
   if (closeBtn) closeBtn.addEventListener('click', () => showPopover(false));
 
   // Settings drawer
+  // First-run setup
+  const setupConnect = $('setupConnect'), setupToken = $('setupToken');
+  if (setupConnect) setupConnect.addEventListener('click', () => doSetup());
+  if (setupToken) setupToken.addEventListener('keydown', (e) => { if (e.key === 'Enter') doSetup(); });
+
   const settingsBtn = $('settingsBtn'), settingsClose = $('settingsClose'), scrim = $('settingsScrim');
   if (settingsBtn) settingsBtn.addEventListener('click', () => openSettings(true));
   if (settingsClose) settingsClose.addEventListener('click', () => openSettings(false));
