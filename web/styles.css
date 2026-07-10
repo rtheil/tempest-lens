@@ -23,6 +23,15 @@
   --shadow: 0 1px 0 rgba(255, 255, 255, .04) inset, 0 10px 30px -12px rgba(0, 0, 0, .6);
   --moon-disc: #242d47;
   --moon-lit: #eef2fb;
+  /* rgb channels for rgba(var(--x-rgb), a) — Chromium 106 has no color-mix().
+     Accents/semantics are constant across themes; text/ground vary (below). */
+  --amber-rgb: 255, 180, 84;
+  --cyan-rgb: 90, 209, 230;
+  --good-rgb: 79, 209, 138;
+  --warn-rgb: 244, 182, 62;
+  --crit-rgb: 255, 106, 106;
+  --text-rgb: 233, 238, 248;
+  --ground-rgb: 10, 14, 26;
 }
 
 :root[data-theme="light"] {
@@ -38,6 +47,8 @@
   --shadow: 0 1px 0 rgba(255, 255, 255, .9) inset, 0 8px 24px -14px rgba(20, 40, 90, .35);
   --moon-disc: #c4ccdd;
   --moon-lit: #6b7796;
+  --text-rgb: 16, 23, 40;
+  --ground-rgb: 238, 241, 247;
 }
 
 * { box-sizing: border-box; }
@@ -100,12 +111,12 @@ body {
   display: inline-flex; align-items: center; gap: 7px;
   font-size: clamp(9px, 1vw, 12px); font-weight: 600; letter-spacing: .8px; text-transform: uppercase;
   color: var(--good);
-  padding: 5px 11px; border: 1px solid color-mix(in srgb, var(--good) 40%, transparent);
-  border-radius: 999px; background: color-mix(in srgb, var(--good) 12%, transparent);
+  padding: 5px 11px; border: 1px solid rgba(var(--good-rgb), 0.4);
+  border-radius: 999px; background: rgba(var(--good-rgb), 0.12);
   transition: color .3s, border-color .3s, background .3s;
 }
-.live[data-state="down"] { color: var(--crit); border-color: color-mix(in srgb, var(--crit) 40%, transparent); background: color-mix(in srgb, var(--crit) 12%, transparent); }
-.live[data-state="stale"] { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.live[data-state="down"] { color: var(--crit); border-color: rgba(var(--crit-rgb), 0.4); background: rgba(var(--crit-rgb), 0.12); }
+.live[data-state="stale"] { color: var(--warn); border-color: rgba(var(--warn-rgb), 0.4); background: rgba(var(--warn-rgb), 0.12); }
 
 /* Static dot (no continuous animation — constant repaints overheat the Pi's
    software-composited kiosk browser). */
@@ -118,11 +129,11 @@ body {
 .icon-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: clamp(44px, 5vw, 54px); height: clamp(40px, 4.6vw, 48px); padding: 0; cursor: pointer;
-  color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--muted); background: rgba(var(--text-rgb), 0.06);
   border: 1px solid var(--border); border-radius: 12px;
   transition: color .2s, border-color .2s, background .2s;
 }
-.icon-btn:hover, .icon-btn:active { color: var(--text); border-color: var(--border-strong); background: color-mix(in srgb, var(--text) 12%, transparent); }
+.icon-btn:hover, .icon-btn:active { color: var(--text); border-color: var(--border-strong); background: rgba(var(--text-rgb), 0.12); }
 .icon-btn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 .icon-btn svg { width: clamp(24px, 2.7vw, 30px); height: clamp(24px, 2.7vw, 30px); }
 
@@ -156,13 +167,13 @@ body {
 .power-btns { display: flex; gap: 8px; }
 .power-btn {
   flex: 1; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
-  color: var(--text); background: color-mix(in srgb, var(--text) 7%, transparent);
+  color: var(--text); background: rgba(var(--text-rgb), 0.07);
   border: 1px solid var(--border); border-radius: 10px; padding: 10px 6px;
   transition: background .15s, border-color .15s, color .15s;
 }
 .power-btn:hover { border-color: var(--border-strong); }
-.power-btn.danger { color: var(--crit); border-color: color-mix(in srgb, var(--crit) 35%, transparent); background: color-mix(in srgb, var(--crit) 10%, transparent); }
-.power-btn.danger:hover { background: color-mix(in srgb, var(--crit) 18%, transparent); }
+.power-btn.danger { color: var(--crit); border-color: rgba(var(--crit-rgb), 0.35); background: rgba(var(--crit-rgb), 0.1); }
+.power-btn.danger:hover { background: rgba(var(--crit-rgb), 0.18); }
 
 /* confirm dialog + system overlay (built in app.js) */
 .confirm-scrim, .sys-overlay {
@@ -180,7 +191,7 @@ body {
 .confirm-card p { margin: 0 0 18px; font-size: 13px; color: var(--muted); line-height: 1.45; }
 .confirm-row { display: flex; gap: 10px; }
 .confirm-row button { flex: 1; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; border-radius: 10px; padding: 11px; border: 1px solid var(--border); }
-.confirm-cancel { color: var(--text); background: color-mix(in srgb, var(--text) 8%, transparent); }
+.confirm-cancel { color: var(--text); background: rgba(var(--text-rgb), 0.08); }
 .confirm-ok { color: var(--ground); background: var(--crit); border-color: var(--crit); }
 .confirm-ok.neutral { color: var(--ground); background: var(--cyan); border-color: var(--cyan); }
 .sys-overlay { flex-direction: column; gap: 14px; color: var(--text); }
@@ -220,8 +231,8 @@ body {
 .setup-remote {
   display: flex; align-items: center; gap: 14px;
   font-size: 13px; line-height: 1.5; color: var(--muted);
-  background: color-mix(in srgb, var(--cyan) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--cyan) 30%, transparent);
+  background: rgba(var(--cyan-rgb), 0.12);
+  border: 1px solid rgba(var(--cyan-rgb), 0.3);
   border-radius: 10px; padding: 14px; margin: 0 0 22px;
 }
 .setup-remote-text { min-width: 0; flex: 1; }
@@ -234,7 +245,7 @@ body {
 .setup-stations { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
 .setup-station {
   font: inherit; font-size: 14px; font-weight: 600; text-align: left; cursor: pointer;
-  color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text); background: rgba(var(--text-rgb), 0.06);
   border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
 }
 .setup-station:hover { border-color: var(--cyan); }
@@ -252,7 +263,7 @@ body {
 .seg { display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
 .seg button {
   font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
-  color: var(--muted); background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--muted); background: rgba(var(--text-rgb), 0.06);
   border: 1px solid var(--border); border-radius: 8px; padding: 5px 10px;
   transition: background .15s, color .15s, border-color .15s;
 }
@@ -262,7 +273,7 @@ body {
 .stepper { display: inline-flex; align-items: center; gap: 8px; }
 .stepper button {
   width: 30px; height: 30px; line-height: 1; font-size: 18px; cursor: pointer;
-  color: var(--text); background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--text); background: rgba(var(--text-rgb), 0.06);
   border: 1px solid var(--border); border-radius: 8px;
 }
 .stepper button:hover { border-color: var(--border-strong); }
@@ -271,7 +282,7 @@ body {
 .toggle {
   position: relative; width: 44px; height: 24px; flex: none; padding: 0; cursor: pointer;
   border: 1px solid var(--border); border-radius: 999px;
-  background: color-mix(in srgb, var(--text) 9%, transparent);
+  background: rgba(var(--text-rgb), 0.09);
   transition: background .18s, border-color .18s;
 }
 .toggle::after {
@@ -289,11 +300,11 @@ body {
   font: inherit; font-size: clamp(9px, 1vw, 12px); font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
   color: var(--amber); cursor: pointer;
   padding: 5px 11px; border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent);
-  background: color-mix(in srgb, var(--amber) 14%, transparent);
+  border: 1px solid rgba(var(--amber-rgb), 0.45);
+  background: rgba(var(--amber-rgb), 0.14);
   transition: background .2s, border-color .2s;
 }
-.update-badge:hover { background: color-mix(in srgb, var(--amber) 22%, transparent); }
+.update-badge:hover { background: rgba(var(--amber-rgb), 0.22); }
 .update-badge:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .update-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--amber); }
 
@@ -335,7 +346,7 @@ body {
 .release-notes {
   margin: 10px 0 2px; padding: 9px 11px;
   max-height: 168px; overflow-y: auto;
-  background: color-mix(in srgb, var(--ground) 45%, transparent);
+  background: rgba(var(--ground-rgb), 0.45);
   border: 1px solid var(--border); border-radius: 8px;
   font-size: .92em; line-height: 1.5; color: var(--muted);
   white-space: pre-wrap; word-break: break-word;
@@ -346,7 +357,7 @@ body {
   color: var(--ground); background: var(--amber);
   border: none; border-radius: 8px; padding: 9px 12px; cursor: pointer;
 }
-.update-run:hover { background: color-mix(in srgb, var(--amber) 88%, #fff); }
+.update-run:hover { background: rgb(255, 189, 105); }
 .update-run:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 .update-run:disabled { opacity: .6; cursor: default; }
 .update-status {
@@ -357,19 +368,19 @@ body {
 .update-status.err { color: var(--crit); font-weight: 600; }
 .spinner {
   flex: none; width: 15px; height: 15px; border-radius: 50%;
-  border: 2px solid color-mix(in srgb, var(--amber) 35%, transparent);
+  border: 2px solid rgba(var(--amber-rgb), 0.35);
   border-top-color: var(--amber);
   animation: spin .8s linear infinite;  /* @keyframes spin defined above */
 }
 
 /* tappable forecast days / TODAY card (open the hourly overlay) */
 .fc-tappable { cursor: pointer; border-radius: 10px; transition: background .12s ease; }
-.fc-tappable:hover { background: color-mix(in srgb, var(--text) 6%, transparent); }
+.fc-tappable:hover { background: rgba(var(--text-rgb), 0.06); }
 
 /* hourly forecast overlay */
 .hourly-scrim {
   position: fixed; inset: 0; z-index: 200;
-  background: color-mix(in srgb, var(--ground) 70%, transparent);
+  background: rgba(var(--ground-rgb), 0.7);
 }
 .hourly-panel {
   position: fixed; z-index: 201;
@@ -391,7 +402,7 @@ body {
 .hr-cell {
   display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 8px 4px; border-radius: 10px;
-  background: color-mix(in srgb, var(--text) 4%, transparent);
+  background: rgba(var(--text-rgb), 0.04);
 }
 .hr-time { font-size: clamp(10px, 1.1vw, 13px); font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: .5px; }
 .hr-icon .wicon { width: clamp(26px, 3vw, 40px); height: auto; display: block; }
