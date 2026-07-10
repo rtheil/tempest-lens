@@ -655,7 +655,12 @@ function updateSetupRemote(access) {
   const urls = access ? [access.host, access.ip].filter(Boolean) : [];
   if (!onDevice || !urls.length) { el.hidden = true; return; }
   const links = urls.map((u) => `<a href="http://${u}">${u}</a>`).join(' &nbsp;·&nbsp; ');
-  el.innerHTML = `<b>No keyboard on this screen?</b><br>Open ${links} on a phone or computer on the same network to finish setup.`;
+  setHTML('setupRemoteText', `<b>No keyboard on this screen?</b><br>Scan the code — or open ${links} on a phone or computer on the same network.`);
+  const qr = $('setupQR');
+  if (qr) {
+    if (access.qr) { if (qr.src !== access.qr) qr.src = access.qr; qr.hidden = false; }
+    else qr.hidden = true;
+  }
   el.hidden = false;
 }
 

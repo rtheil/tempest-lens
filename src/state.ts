@@ -63,11 +63,11 @@ export class State {
   private hist: History | null = null;
   private updateInfo: UpdateInfo = { available: false, current: VERSION, latest: '', url: '' };
   private configured = false;
-  private access = { host: '', ip: '' };
+  private access = { host: '', ip: '', qr: '' };
 
   constructor(private units: Units, private display: DisplayPrefs) {}
 
-  setAccess(a: { host: string; ip: string }): void {
+  setAccess(a: { host: string; ip: string; qr: string }): void {
     this.access = a;
   }
 

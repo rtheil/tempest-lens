@@ -8,6 +8,7 @@
  */
 
 import os from 'node:os';
+import QRCode from 'qrcode';
 import { loadConfig, saveSettings, saveCredentials } from './config.js';
 import { State, VERSION, REPO, REPO_URL } from './state.js';
 import { startUdpListener, TEMPEST_UDP_PORT } from './udp.js';
@@ -38,10 +39,22 @@ function lanIPv4(): string {
   }
   return '';
 }
-state.setAccess({
+const accessInfo = {
   host: `${os.hostname()}.local:${HTTP_PORT}`,
   ip: lanIPv4() ? `${lanIPv4()}:${HTTP_PORT}` : '',
-});
+  qr: '',
+};
+state.setAccess(accessInfo);
+// Generate a QR to the IP URL (more phone-friendly than mDNS) so a kiosk user
+// can scan straight to the setup page and paste their token from their phone.
+{
+  const target = accessInfo.ip || accessInfo.host;
+  if (target) {
+    QRCode.toDataURL(`http://${target}`, { margin: 1, width: 260 })
+      .then((qr) => state.setAccess({ ...accessInfo, qr }))
+      .catch((err) => console.error('[tempest-lens] QR generation failed:', (err as Error).message));
+  }
+}
 
 // Live credentials — mutable so first-run setup / Settings can update them
 // without a restart. The REST refreshers read the latest values each tick.

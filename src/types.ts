@@ -42,7 +42,7 @@ export interface Snapshot {
   build: string;
   version: number;
   configured: boolean; // false = no token yet -> frontend shows first-run setup
-  access: { host: string; ip: string }; // reachable URLs (host:port) for the setup hint
+  access: { host: string; ip: string; qr: string }; // reachable URLs + a QR data-URL to the IP
   meta: Meta;
   obs: Obs;
   astro: Record<string, unknown>;
