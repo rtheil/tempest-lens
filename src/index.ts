@@ -270,6 +270,7 @@ const checkUpdate = async () => {
       available: !!latest && latest !== VERSION,
       latest: rel?.tag ?? '',
       url: rel?.url ?? REPO_URL,
+      notes: rel?.body ?? '',
     });
   } catch (err) {
     warn('update check', err);

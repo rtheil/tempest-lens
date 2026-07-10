@@ -332,6 +332,14 @@ body {
 }
 .popover-body a { color: var(--cyan); text-decoration: none; font-weight: 600; }
 .popover-body a:hover { text-decoration: underline; }
+.release-notes {
+  margin: 10px 0 2px; padding: 9px 11px;
+  max-height: 168px; overflow-y: auto;
+  background: color-mix(in srgb, var(--ground) 45%, transparent);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: .92em; line-height: 1.5; color: var(--muted);
+  white-space: pre-wrap; word-break: break-word;
+}
 .update-run {
   display: block; width: 100%; margin: 12px 0 4px;
   font: inherit; font-weight: 700; font-size: .95em;

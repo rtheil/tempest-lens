@@ -83,14 +83,14 @@ export async function fetchStation(token: string, stationId: number): Promise<St
  *  Returns the tag + URL, or null if there are no releases / on error. */
 export async function fetchLatestRelease(
   repo: string,
-): Promise<{ tag: string; url: string } | null> {
+): Promise<{ tag: string; url: string; body: string } | null> {
   const r = await fetch(`https://api.github.com/repos/${repo}/releases/latest`, {
     headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'tempest-lens' },
   });
   if (r.status === 404) return null; // no releases yet
   if (!r.ok) throw new Error(`github releases HTTP ${r.status}`);
   const j: any = await r.json();
-  return j?.tag_name ? { tag: String(j.tag_name), url: j.html_url ?? '' } : null;
+  return j?.tag_name ? { tag: String(j.tag_name), url: j.html_url ?? '', body: String(j.body ?? '') } : null;
 }
 
 /** Latest station observation object (WeatherFlow's server-side derived +

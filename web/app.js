@@ -408,12 +408,29 @@ function render(s) {
       badge.hidden = false;
       set('verCurrent', upd.current || '--');
       set('verLatest', upd.latest || '--');
-      const link = $('verLink');
-      if (link) link.href = upd.url || '#';
+      const notes = $('releaseNotes');
+      if (notes) {
+        const txt = cleanNotes(upd.notes);
+        notes.textContent = txt;
+        notes.hidden = !txt;
+      }
     } else {
       badge.hidden = true;   // popover is closed by user interaction only, not render
     }
   }
+}
+
+// Tidy a GitHub release body for plain-text display in the popover: drop
+// heading hashes, turn "- " / "* " bullets into "•", collapse blank runs.
+function cleanNotes(md) {
+  if (!md) return '';
+  return String(md)
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((l) => l.replace(/^#{1,6}\s*/, '').replace(/^\s*[-*]\s+/, '• '))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 // Kick off a self-update: POST /api/update, then wait for the service to drop

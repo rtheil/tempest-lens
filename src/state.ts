@@ -36,6 +36,7 @@ interface UpdateInfo {
   current: string;
   latest: string;
   url: string;
+  notes: string;
 }
 
 export class State {
@@ -61,7 +62,7 @@ export class State {
   private temp24hAgoC: number | null = null;
   private temp3hAgoC: number | null = null;
   private hist: History | null = null;
-  private updateInfo: UpdateInfo = { available: false, current: VERSION, latest: '', url: '' };
+  private updateInfo: UpdateInfo = { available: false, current: VERSION, latest: '', url: '', notes: '' };
   private configured = false;
   private access = { host: '', ip: '', qr: '' };
 
@@ -82,8 +83,8 @@ export class State {
     return this.updateInfo;
   }
 
-  setUpdate(info: { available: boolean; latest: string; url: string }): void {
-    this.updateInfo = { available: info.available, current: VERSION, latest: info.latest, url: info.url };
+  setUpdate(info: { available: boolean; latest: string; url: string; notes?: string }): void {
+    this.updateInfo = { available: info.available, current: VERSION, latest: info.latest, url: info.url, notes: info.notes ?? '' };
     this.version++;
   }
 
