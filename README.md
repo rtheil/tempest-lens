@@ -1,6 +1,8 @@
 # TempestLens
 
 A modern, self-hosted dashboard for the [WeatherFlow Tempest](https://weatherflow.com/tempest-weather-system/) weather station. Runs anywhere Node runs — and great as a Raspberry Pi wall kiosk.
+<img width="1260" height="777" alt="image" src="https://github.com/user-attachments/assets/017b9079-e6f6-49ee-b216-d044e4dc13fa" />
+<img width="1260" height="772" alt="image" src="https://github.com/user-attachments/assets/7568d129-83bd-442d-84f8-0bc9d9152a70" />
 
 > **Status: early, active development.** Unofficial project, not affiliated with WeatherFlow.
 
